@@ -103,6 +103,7 @@ table.stat{width:100%;margin:0;border-collapse:collapse;table-layout:fixed;font-
 @media print{
  html,body{background:#fff}
  .top,.wrap,.pbar,.fab,.bg,.toast,.login{display:none!important}
+ body.otlock #vPrev{display:none!important}
  .prev:not(.hide){display:block!important}.stage{padding:0;display:block}
  .paper{box-shadow:none;margin:0;zoom:1!important;width:210mm;min-height:0;height:296mm;overflow:hidden}
  .sumpaper{break-after:page;page-break-after:always}.sumpaper:last-child{break-after:auto;page-break-after:auto}
@@ -160,7 +161,7 @@ table.stat{width:100%;margin:0;border-collapse:collapse;table-layout:fixed;font-
   <p class="mut" style="margin:8px 0 0">登入只在網頁端檢查，主要是區分身分與帶入姓名，並非嚴格的資安防護。</p></div>
 </div>
 <div class="prev hide" id="vPrev">
- <div class="pbar"><button class="btn p" id="bPrint">下載 (WORD檔)</button><button class="btn" id="bPdf">列印 (PDF檔)</button><div class="mut" style="flex-basis:100%;text-align:center;font-size:12px">「下載 (WORD檔)」會下載 Word 檔，開啟後再印；「列印 (PDF檔)」需要在瀏覽器直接開啟本網頁才能使用。你填寫的資料會自動儲存並同步給管理者，不需要另外送出。</div></div>
+ <div class="pbar"><button class="btn p" id="bPrint">下載 (WORD檔)</button><button class="btn" id="bPdf">列印 (PDF檔)</button><div id="apvNote" style="flex-basis:100%;text-align:center;font-size:14px;line-height:1.6"></div><div class="mut" style="flex-basis:100%;text-align:center;font-size:12px">「下載 (WORD檔)」會下載 Word 檔，開啟後再印；「列印 (PDF檔)」需要在瀏覽器直接開啟本網頁才能使用。你填寫的資料會自動儲存並同步給管理者，不需要另外送出。</div></div>
  <div class="stage"><div class="paper" id="paper">
   <h1>彰化基督教醫療財團法人員林基督教醫院</h1>
   <div class="meta"><span class="c0"><span class="v ul w-yr" id="pyr"></span>年 <span class="v ul w-mo" id="pmo"></span>月 加班事由申請單</span><span class="c1">單位名稱：<span id="punit"></span></span><span>單位代號：<span id="pucode"></span></span></div>
@@ -443,7 +444,7 @@ function setSel(el,v){v=String(v);if(![...el.options].some(o=>o.value===v))el.ad
 ['yr','mo'].forEach(k=>{$('#h_'+k).onchange=e=>{save();S.h[k]=e.target.value;monthData();refresh()}});
 
 /* ---------- tabs ---------- */
-function view(v){CUR=v;['Fill','Prev','Admin','Sum','Det'].forEach(n=>$('#v'+n).classList.toggle('hide',n.toLowerCase()!==v));
+function view(v){CUR=v;if(v==='prev')setTimeout(updApv,0);['Fill','Prev','Admin','Sum','Det'].forEach(n=>$('#v'+n).classList.toggle('hide',n.toLowerCase()!==v));
   $('#fab').classList.toggle('hide',v!=='fill');$('#tFill').classList.toggle('on',v==='fill');$('#tPrev').classList.toggle('on',v==='prev');$('#tAdm').classList.toggle('on',v==='admin'||v==='sum'||v==='det');fit();scrollTo(0,0)}
 $('#tFill').onclick=()=>view('fill');$('#tPrev').onclick=()=>view('prev');
 function fit(){document.documentElement.style.setProperty('--topH',($('.top').offsetHeight||57)+'px');const a=document.documentElement.clientWidth-16,z=a<794?a/794:1;document.querySelectorAll('.paper').forEach(p=>p.style.zoom=z)}
@@ -746,7 +747,17 @@ $('#sWord').onclick=()=>{const v=sval(),list=renderSum();if(!list.length)return 
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);toast('已下載 Word 檔，請開啟後列印')};
 
 /* ---------- print / export ---------- */
+// 加班申請單需經管理者審核：本月所有明細都「已通過」才可列印／下載（管理人不受限制）
+function apv(){const rv=loadRev()[S.h.yr+'-'+S.h.mo]||{},id=S.h.empid||(USER&&USER.id);let ok=0,pend=0,rej=0;
+  S.rows.forEach(r=>{const x=rrOf(rv,id,r);if(!x)pend++;else if(x.st==='rej')rej++;else ok++});
+  return {ok,pend,rej,can:!!USER&&(USER.role==='admin'||(S.rows.length>0&&!pend&&!rej))}}
+function updApv(){const a=apv(),el=$('#apvNote');document.body.classList.toggle('otlock',!a.can);if(!el)return;
+  const st='已通過 '+a.ok+' 筆'+(a.pend?'・待審核 '+a.pend+' 筆':'')+(a.rej?'・已退回 '+a.rej+' 筆':'');
+  el.innerHTML='<b style="color:#b4531a">※ 加班事由申請單須經管理者審核通過後，才能列印或下載。</b><br>'+
+    (!S.rows.length?'本月尚無加班明細。':a.can?'<span style="color:#1f7a4d">本月明細'+(USER.role==='admin'&&(a.pend||a.rej)?'（'+st+'，管理人可直接列印）':'已全部審核通過（'+a.ok+' 筆），可以列印。')+'</span>'
+      :'<span style="color:#c0392b">目前：'+st+'。'+(a.rej?'請到「填寫」修改被退回的明細，':'')+'全部通過後才能列印。</span>')}
 async function guard(){
+  const a=apv();updApv();if(!a.can){toast(!S.rows.length?'沒有任何加班明細':'須經管理者審核通過後才能列印'+(a.pend?'（待審核 '+a.pend+' 筆）':'')+(a.rej?'（已退回 '+a.rej+' 筆）':''));return false}
   const m=[];if(!S.h.name)m.push('尚未填寫員工姓名');if(!S.h.empid)m.push('尚未填寫員工代號');if(!S.rows.length)m.push('沒有任何加班明細');
   return m.length?dlg(m.join('\n')+'\n\n仍要繼續嗎？'):true}
 const fileBase=()=>'加班申請單_'+S.h.yr+'年'+S.h.mo+'月'+(S.h.name?'_'+S.h.name:'');
@@ -772,7 +783,7 @@ $('#otOut').onclick=()=>{closeSheet();LS.flushAll();if(OT&&OT.logout)OT.logout()
 LS.onChange=ch=>{if(!USER)return;
   if(ch.indexOf(CK)>=0){try{mergeCfg(JSON.parse(LS.getItem(CK)||'null'));renderPaper();if(CUR==='admin')drawAdmin()}catch(e){}}
   if(ch.indexOf(curKey())>=0&&CUR==='fill'&&!$('#bg').classList.contains('on')){monthData();renderList();renderPaper()}
-  if(CUR==='det')renderDet();else if(CUR==='sum')renderSum();else if(CUR==='fill')renderList()};
+  if(CUR==='det')renderDet();else if(CUR==='sum')renderSum();else if(CUR==='fill')renderList();else if(CUR==='prev')updApv()};
 addEventListener('visibilitychange',()=>{if(document.hidden)LS.flushAll()});addEventListener('pagehide',()=>LS.flushAll());
 const hu=hostUser();
 if(!hu){document.body.innerHTML='<div style="padding:40px 16px;text-align:center;font-size:16px">請從預約系統登入後，再進入「加班費申請」。</div>'}
