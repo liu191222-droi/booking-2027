@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-Hant"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>加班事由申請單</title>
+<style>
+:root{--ink:#202124;--mut:#5f6368;--ac:#a39045;--acd:#857432;--bg:#f0ebe0;--ln:#dadce0;--wk:#fbe9e7}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 "Microsoft JhengHei","PingFang TC","Noto Sans TC",sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+.top{position:sticky;top:0;z-index:5;background:#fff;border-bottom:1px solid var(--ln);padding:10px 14px;display:flex;align-items:center;gap:10px}
+.top h1{font-size:16px;margin:0;white-space:nowrap}
+.tabs{display:flex;background:#e8e2d2;border-radius:9px;padding:3px;margin-left:auto}
+.tabs button{border:0;background:none;padding:7px 16px;border-radius:7px;font-size:14px}
+.tabs button.on{background:#fff;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.wrap{max-width:560px;margin:0 auto;padding:14px 14px 120px}
+.card{background:#fff;border:1px solid var(--ln);border-radius:12px;padding:14px;margin-bottom:12px}
+.card h2{font-size:15px;margin:0 0 10px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+label.l{display:block;font-size:13px;color:var(--mut);margin:0 0 4px}
+.in{width:100%;font:inherit;padding:10px 12px;min-height:44px;border:1px solid #bcc3cb;border-radius:8px;background:#fff}
+.in:focus{outline:2px solid var(--ac);border-color:var(--ac)}.in:disabled{background:#f0f1f3;color:#9aa0a6}
+details summary{font-size:13px;color:var(--mut);margin-top:10px;cursor:pointer}
+.ent{display:flex;gap:12px;align-items:center;padding:12px 4px;border-top:1px solid #eceef0;cursor:pointer}
+.ent:first-of-type{border-top:0}
+.badge{flex:none;width:36px;height:36px;border-radius:50%;color:#fff;display:grid;place-items:center;font-weight:700}
+.ent .m{flex:1;min-width:0}.ent .m div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mut{color:var(--mut);font-size:13px}.chip.pre{border-color:#d93025;box-shadow:0 0 0 1px #d93025}.rnote{color:#d93025;font-weight:400;font-size:12px}.hrs{text-align:right;font-size:13px;color:var(--mut);white-space:nowrap}
+.empty{color:var(--mut);text-align:center;padding:22px 0}
+.sum{font-size:13px;color:var(--mut);margin-top:8px;border-top:1px dashed var(--ln);padding-top:8px}
+.fab{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:6;background:var(--ac);color:#fff;border:0;border-radius:999px;padding:14px 28px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.28)}
+.btn{padding:10px 16px;min-height:44px;border-radius:8px;border:1px solid #b8bec6;background:#fff}
+.btn.p{background:var(--ac);border-color:var(--ac);color:#fff}.btn.d{color:#c0392b;border-color:#e3b3ad}
+.pbar{position:sticky;top:var(--topH,57px);z-index:4;background:#fff;border-bottom:1px solid var(--ln);padding:8px 14px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.hide{display:none!important}
+.it{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #eceef0}.it span{flex:1;word-break:break-all}
+.it:first-child{border-top:0}.star{border:0;background:none;font-size:22px;color:#c9ced4;padding:0 6px}.star.on{color:#e08a00}
+.del2{border:0;background:none;color:#c0392b;font-size:24px;padding:0 6px;line-height:1}
+.adm{display:block;text-align:center;color:var(--mut);font-size:13px;text-decoration:underline;padding:8px;cursor:pointer}
+.arow{display:flex;gap:8px;align-items:center;margin-top:10px}.arow .in{flex:1;min-width:0}.arow span{color:var(--mut)}
+.login{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}.login.hide{display:none}
+.lcard{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:24px;width:100%;max-width:380px}.lcard h1{font-size:20px;margin:0 0 4px}.lcard .l{margin-top:14px}
+body.out .top,body.out .wrap,body.out .fab,body.out .prev{display:none}
+.who{display:flex;justify-content:space-between;align-items:center;font-size:14px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #eceef0}
+.who a{color:var(--mut);text-decoration:underline;cursor:pointer}
+.dlg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#fff;border-radius:14px;padding:20px;width:min(90vw,360px)}.dlg p{margin:0 0 12px;white-space:pre-line}
+.subtabs{display:flex;gap:8px;margin-bottom:12px}.subtabs button{flex:1;padding:10px 2px;border:1px solid var(--ln);background:#fff;border-radius:9px;font-size:14px;white-space:nowrap}.subtabs button.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.sm1,.sm2{font-size:12pt;margin-bottom:2mm}.snote{font-size:11pt;margin-top:3mm;line-height:1.5}.ssign{font-size:12pt;margin-top:8mm}.ssign .line{width:20mm}
+.sumtb th,.sumtb td{font-size:11pt;height:7mm;padding:0 .8mm}.sumtb th{font-weight:400;padding:.8mm 0}.sumtb thead{display:table-header-group}.blk{break-inside:avoid;page-break-inside:avoid}
+.ent2{padding:8px 0;border-top:1px solid #eceef0;font-size:14px}.ent2:first-child{border-top:0}
+.st{display:inline-block;padding:1px 10px;border-radius:999px;font-size:12px;background:#fdecc8;color:#7a5200;white-space:nowrap}.st.ok{background:#d6efdc;color:#1d6b34}
+.dcard{background:#fff;border:1px solid var(--ln);border-radius:12px;margin-bottom:10px}.dcard summary{padding:12px 14px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dcard summary::-webkit-details-marker{display:none}.dbody{padding:0 14px 12px}
+.top .btn{min-height:36px;padding:6px 12px;font-size:14px;white-space:nowrap}.top .tabs{margin-left:auto}.top .tabs button{padding:7px 10px;white-space:nowrap}.top h1{font-size:15px}
+.ttl2{display:flex;align-items:baseline;gap:10px;min-width:0}.greet{color:var(--ac);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:420px){.top{gap:6px;padding:8px 10px;flex-wrap:wrap}.ttl2{flex-basis:100%}.top .tabs{margin-left:0}}
+.st.part{background:#dbeafe;color:#1e40af}.ent2{border-left:4px solid transparent;padding-left:10px}.ent2.ok{border-left-color:#2e9e57}.ent2.rej{border-left-color:#d93025}.ent2.pend{border-left-color:#e0a800}.ent2 .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.btn.sm{min-height:34px;padding:4px 12px;font-size:13px}.st.rej{background:#fadbd8;color:#922b21}.st.none{background:#e5e7eb;color:#4b5563}.mv{border:1px solid var(--ln);background:#fff;border-radius:6px;width:34px;height:34px;font-size:13px;padding:0}.mv:disabled{opacity:.35}
+.rbox{border-radius:8px;padding:8px 12px;margin-bottom:6px;background:#fdf6e3;font-size:14px}.rbox.ok{background:#eaf6ed}.rbox.rej{background:#fdeceb}
+.ent2 .row{display:flex;gap:8px;margin-top:6px}
+/* sheet */
+.bg{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:20;display:none}.bg.on{display:block}
+.sheet{position:absolute;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;background:#fff;border-radius:16px 16px 0 0;max-height:94vh;overflow:auto;padding:16px 16px 22px}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}.sh b{font-size:17px}
+.x{border:0;background:none;font-size:26px;line-height:1;padding:4px 10px}
+.sec{margin-top:16px}.sec>label.l{font-weight:700;color:var(--ink);font-size:14px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.cal b{text-align:center;font-size:12px;color:var(--mut);font-weight:400}
+.cal button{height:42px;border:0;border-radius:8px;background:#f4f5f6;position:relative}
+.cal button.wk{background:var(--wk)}.cal button.sel{background:var(--ac);color:#fff}
+.cal button.has::after{content:"";position:absolute;bottom:4px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:#e08a00}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{border:1px solid #bcc3cb;background:#fff;border-radius:999px;padding:6px 12px;font-size:14px}
+.types{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.types button{padding:9px 4px;border:2px solid #cfd4da;border-radius:10px;background:#fff;line-height:1.25;font-size:13px}
+.types button b{display:block;font-size:20px}.types button.on{border-color:var(--c);background:var(--c);color:#fff}
+.tt{display:flex;align-items:center;gap:8px}.tt span{color:var(--mut)}
+.chk{display:flex;align-items:center;gap:8px;margin:8px 0 0;font-size:15px}.chk input{width:20px;height:20px}
+.err{color:#c0392b;font-size:14px;min-height:20px;margin-top:12px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}.acts .btn{flex:1;white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#1b1f23;color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:30;max-width:92vw}.toast.show{opacity:1}
+/* paper */
+.stage{padding:14px 8px 60px;display:flex;justify-content:center}
+.paper{width:210mm;min-height:296mm;background:#fff;box-shadow:0 2px 14px rgba(0,0,0,.18);padding:15mm 15mm 0;display:flex;flex-direction:column;color:#000;font-size:10pt;transform-origin:top center;font-family:"DFKai-SB","標楷體","BiauKai","Kaiti TC","KaiTi",serif;line-height:1.3}
+.paper h1{font-size:16pt;text-align:center;margin:2mm 0 5mm;font-weight:700;letter-spacing:.03em}
+.meta,.emp,.note,.sign,.makers,.stat-lbl{font-size:12pt}
+.meta{display:flex;align-items:baseline;white-space:nowrap;margin-bottom:5mm}.c0{display:inline-block;width:76mm}.c1{display:inline-block;width:51mm}
+.emp{margin-bottom:4mm;display:flex;white-space:nowrap}
+.v{display:inline-block;min-height:1em;text-align:center}.ul{border-bottom:1px solid #000}
+.w-yr{min-width:11mm}.w-mo{min-width:8mm}.w-name{min-width:26mm;text-align:left}.w-id{min-width:26mm;text-align:left}
+table.grid{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10pt}
+.grid th,.grid td{border:1px solid #000;text-align:center}
+.grid th{font-weight:400;line-height:1.35;padding:1mm 0;font-size:10pt}.grid th small{font-size:9pt;display:block;line-height:1.2}
+.grid td{height:8.4mm;padding:0 .8mm;vertical-align:middle;word-break:break-all}
+.grid td.l{text-align:left;font-size:10pt;line-height:1.25;padding:.8mm 1.2mm}
+.note{margin:1.5mm 0 0}.sign{padding-left:102mm;margin:2mm 0 2mm}
+.line{display:inline-block;width:30mm;border-bottom:1px solid #000;height:1em}
+.stat-lbl{margin:0 0 1mm}
+table.stat{width:100%;margin:0;border-collapse:collapse;table-layout:fixed;font-size:12pt}.stat th{white-space:nowrap}
+.stat th,.stat td{border:1px solid #000;text-align:center;padding:0;font-weight:700}.stat th{padding:1.6mm 0}.stat td{height:9mm;font-weight:400;font-size:12pt}
+.makers{display:flex;margin-top:10mm;align-items:baseline}.mk0{display:inline-block;width:102mm}
+.foot{margin-top:auto;display:flex;justify-content:space-between;font-family:"DFKai-SB","標楷體","BiauKai","Kaiti TC","KaiTi",serif;font-size:8pt;padding:0 5mm 9mm;position:relative}
+.foot span:nth-child(2){position:absolute;left:50%;transform:translateX(-50%)}
+@page{size:A4;margin:0}
+@media print{
+ html,body{background:#fff}
+ .top,.wrap,.pbar,.fab,.bg,.toast,.login{display:none!important}
+ .prev:not(.hide){display:block!important}.stage{padding:0;display:block}
+ .paper{box-shadow:none;margin:0;zoom:1!important;width:210mm;min-height:0;height:296mm;overflow:hidden}
+ .sumpaper{break-after:page;page-break-after:always}.sumpaper:last-child{break-after:auto;page-break-after:auto}
+ *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+.login{display:none!important}
+.card:has(#aUsers),.card:has(#admId),.card:has(#aExp){display:none!important}
+</style></head><body>
+
+<div class="login" id="login"><div class="lcard" id="lf">
+ <h1>加班事由申請單</h1><div class="mut">彰化基督教醫療財團法人員林基督教醫院</div>
+ <label class="l" for="lid">員工代號</label><input class="in" id="lid" autocomplete="username" autocapitalize="off">
+ <label class="l" for="lpw">密碼</label><input class="in" id="lpw" type="password" autocomplete="current-password">
+ <div class="err" id="lerr"></div><button class="btn p" type="button" id="lbtn" style="width:100%">登入</button></div></div>
+<div class="top"><div class="ttl2"><h1>加班事由申請單</h1><span class="greet" id="greet"></span></div>
+ <div class="tabs"><button id="tFill" class="on">填寫</button><button id="tPrev">預覽・輸出</button><button id="tAdm" class="hide">後台管理</button></div><button class="btn" id="logout">返回預約系統</button></div>
+
+<div class="wrap" id="vFill">
+ <div class="card"><div class="who"><span id="whoTxt"></span></div><h2>基本資料</h2>
+  <div class="g3"><div><label class="l" for="h_yr">民國年</label><select class="in" id="h_yr"></select></div>
+  <div><label class="l" for="h_mo">月份</label><select class="in" id="h_mo"></select></div><div></div></div>
+  <div class="g2" style="margin-top:10px"><div><label class="l" for="h_name">員工姓名</label><input class="in" id="h_name" autocomplete="name"></div>
+  <div><label class="l" for="h_empid">員工代號</label><input class="in" id="h_empid"></div></div>
+  <details><summary>單位資料（一般不用改）</summary><div class="g2" style="margin-top:8px">
+   <div><label class="l" for="h_unit">單位名稱</label><input class="in" id="h_unit"></div>
+   <div><label class="l" for="h_ucode">單位代號</label><input class="in" id="h_ucode"></div></div></details></div>
+ <div class="card"><h2>加班明細 <span class="mut" id="cnt"></span></h2><div id="list"></div><div class="sum" id="sum"></div></div>
+</div>
+<button class="fab" id="fab">＋ 新增加班</button>
+
+<div class="wrap hide" id="vAdmin">
+ <div class="subtabs"><button class="on" data-go="admin">設定</button><button data-go="sum">加班費總表</button><button data-go="det">加班明細審核</button></div>
+ <div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><h2 style="margin:0">後台管理</h2><button class="btn" id="aBack">返回填寫</button></div>
+  <p class="mut" style="margin:10px 0 0">設定會即時同步給全部同仁；人員與登入使用預約系統的員工帳號。★ 代表新增加班時自動帶入的預設值。</p></div>
+ <div class="card"><h2>加班申請事由選項</h2><div id="aReasons"></div><div style="margin-top:12px;padding-top:12px;border-top:1px solid #eceef0"><label class="l" for="nReason" id="rFormT">新增事由選項</label><input class="in" id="nReason" placeholder="事由內容">
+   <label class="l" style="margin-top:10px">預設加班起迄時間（選填）</label><div class="tt"><input class="in" type="time" id="rOs"><span>至</span><input class="in" type="time" id="rOe"></div>
+   <label class="l" style="margin-top:10px">預設休息起迄時間（選填）</label><div class="tt"><input class="in" type="time" id="rRs"><span>至</span><input class="in" type="time" id="rRe"></div>
+   <label class="l" for="rType" style="margin-top:10px">預設種類（選填）</label><select class="in" id="rType"></select>
+   <label class="l" for="rTax" style="margin-top:10px">含稅／不含稅（只有管理人看得到，不會印出）</label><select class="in" id="rTax"><option value="ex">不含稅（預設）</option><option value="in">含稅</option></select>
+   <label class="l" style="margin-top:10px">預設前2時／後2時（選填）</label><div class="tt"><input class="in" id="rFront" inputmode="decimal" placeholder="前2時"><span>／</span><input class="in" id="rBack" inputmode="decimal" placeholder="後2時"></div>
+   <div class="acts" style="margin-top:12px"><button class="btn hide" id="rCancel">取消編輯</button><button class="btn p" id="addReason">新增</button></div></div></div>
+ <div class="card"><h2>加班起迄時間選項</h2><div id="aOt"></div><div class="arow"><input class="in" type="time" id="aos"><span>至</span><input class="in" type="time" id="aoe"><button class="btn p" id="addOt">新增</button></div></div>
+ <div class="card"><h2>休息起迄時間選項</h2><div id="aRest"></div><div class="arow"><input class="in" type="time" id="ars"><span>至</span><input class="in" type="time" id="are"><button class="btn p" id="addRest">新增</button></div></div>
+ <div class="card"><h2>種類預設</h2><div class="g2"><div><label class="l" for="dWk">平日預設種類</label><select class="in" id="dWk"></select></div><div><label class="l" for="dWe">週六日預設種類</label><select class="in" id="dWe"></select></div></div></div>
+ <div class="card"><h2>製表人</h2><div class="arow"><input class="in" id="nMaker" placeholder="製表人姓名"><button class="btn" id="saveMaker">儲存</button></div><p class="mut" style="margin:8px 0 0">會印在紙本、PDF、Word 的「製表人」欄，預設詹智琳。</p></div>
+ <div class="card"><h2>含稅／不含稅</h2><label class="l" for="taxSel">系統預設（同仁沒有選到預設事由時使用；只有管理人看得到，不會印出）</label><select class="in" id="taxSel"><option value="ex">不含稅（預設）</option><option value="in">含稅</option></select></div>
+ <div class="card"><h2>管理人帳號</h2><p class="mut" style="margin:0 0 8px">代號：<span id="admId"></span></p><div class="arow"><input class="in" id="nAdmPw" placeholder="新的管理人密碼"><button class="btn" id="saveAdm">儲存</button></div></div>
+ <div class="card"><h2>員工帳號</h2><div id="aUsers"></div>
+  <div class="g3" style="margin-top:10px"><input class="in" id="uId" placeholder="員工代號"><input class="in" id="uName" placeholder="姓名"><input class="in" id="uPw" placeholder="密碼"></div>
+  <div class="acts" style="margin-top:8px"><button class="btn p" id="addUser">新增員工</button></div>
+  <label class="l" for="uBulk" style="margin-top:14px">批次新增（每行一人：代號,姓名,密碼）</label><textarea class="in" id="uBulk" rows="4"></textarea>
+  <div class="acts" style="margin-top:8px"><button class="btn" id="bulkUser">批次新增</button></div></div>
+ <div class="card"><h2>設定檔</h2><div class="acts"><button class="btn p" id="aExp">匯出設定檔</button><button class="btn" id="aImp">匯入設定檔</button><button class="btn d" id="aRst">選項還原預設</button></div>
+  <input type="file" id="aFile" accept=".json,application/json" class="hide">
+  <p class="mut" style="margin:8px 0 0">登入只在網頁端檢查，主要是區分身分與帶入姓名，並非嚴格的資安防護。</p></div>
+</div>
+<div class="prev hide" id="vPrev">
+ <div class="pbar"><button class="btn p" id="bPrint">列印（Word 檔）</button><button class="btn" id="bPdf">匯出 PDF</button><div class="mut" style="flex-basis:100%;text-align:center;font-size:12px">「列印」會下載 Word 檔，開啟後再印；PDF 需要在瀏覽器直接開啟本網頁才能使用。你填寫的資料會自動儲存並同步給管理者，不需要另外送出。</div></div>
+ <div class="stage"><div class="paper" id="paper">
+  <h1>彰化基督教醫療財團法人員林基督教醫院</h1>
+  <div class="meta"><span class="c0"><span class="v ul w-yr" id="pyr"></span>年 <span class="v ul w-mo" id="pmo"></span>月 加班事由申請單</span><span class="c1">單位名稱：<span id="punit"></span></span><span>單位代號：<span id="pucode"></span></span></div>
+  <div class="emp"><span class="c0"></span><span class="c1">員工姓名：<span class="v w-name" id="pname"></span></span><span>員工代號：<span class="v w-id" id="pempid"></span></span></div>
+  <table class="grid"><colgroup><col style="width:7.5%"><col style="width:12.5%"><col style="width:12.5%"><col style="width:42.5%"><col style="width:5.5%"><col style="width:6.5%"><col style="width:6.5%"><col style="width:6.5%"></colgroup>
+   <thead><tr><th>日期<br>(月/日)</th><th>加班<br>起迄時間</th><th>休息<br>起迄時間</th><th>加班申請事由<small>(如加班起迄時段無給予休息時間，請特別說明未休息特殊原因)</small></th><th>*種<br>類</th><th>正常<br>時數</th><th>前<br>2時</th><th>後<br>2時</th></tr></thead>
+   <tbody id="tbody"></tbody></table>
+  <p class="note">＊種類：A-平日加班　B-緊急來院加班　C-休息日出勤加班</p>
+  <p class="sign">申請人簽名：</p>
+  <p class="stat-lbl">統計:</p>
+  <table class="stat"><colgroup><col style="width:15.2%"><col style="width:15.2%"><col style="width:26.5%"><col style="width:14.3%"><col style="width:14.4%"><col style="width:14.4%"></colgroup><tr><th colspan="2">平日加班(A)</th><th>緊急來院加班(B)</th><th colspan="3">休息日出勤 (C)</th></tr>
+   <tr><th>前 2 小時</th><th>後 2 小時</th><th>正常時數</th><th>正常時數</th><th>前 2 小時</th><th>後 2 小時</th></tr>
+   <tr><td id="sAf"></td><td id="sAb"></td><td id="sBn"></td><td id="sCn"></td><td id="sCf"></td><td id="sCb"></td></tr></table>
+  <div class="makers"><span class="mk0">製表人：<span id="pmaker"></span></span><span>單位主管簽名：</span></div>
+  <div class="foot"><span>53003-01-013</span><span>2019/05</span><span></span></div>
+ </div></div>
+</div>
+
+<div class="wrap hide" id="vDet">
+ <div class="subtabs"><button data-go="admin">設定</button><button data-go="sum">加班費總表</button><button class="on" data-go="det">加班明細審核</button></div>
+ <div class="card"><h2>同仁加班明細與審核</h2>
+  <div class="g3"><div><label class="l" for="dYr">民國年</label><input class="in" id="dYr" inputmode="numeric"></div><div><label class="l" for="dMo">月份</label><select class="in" id="dMo"></select></div><div style="display:flex;align-items:flex-end"><button class="btn" id="dRef" style="width:100%">重新整理</button></div></div>
+  <div class="mut" id="dInfo" style="margin:10px 0"></div><label class="l" for="dFilter">顯示</label><select class="in" id="dFilter" style="margin-bottom:10px"><option value="">全部</option><option value="pend">待審核</option><option value="part">部分通過</option><option value="ok">已通過</option><option value="rej">已退回</option><option value="none">未申請</option></select><div class="acts"><button class="btn" id="dAll">全部待審核明細一次通過</button></div></div>
+ <div id="dList"></div>
+</div>
+<div class="prev hide" id="vSum">
+ <div class="wrap" style="padding-bottom:6px">
+  <div class="subtabs"><button data-go="admin">設定</button><button class="on" data-go="sum">加班費總表</button><button data-go="det">加班明細審核</button></div>
+  <div class="card"><h2>加班費總表</h2>
+   <div class="g3"><div><label class="l" for="sYr">民國年</label><input class="in" id="sYr" inputmode="numeric"></div><div><label class="l" for="sMo">月份</label><select class="in" id="sMo"></select></div><div style="display:flex;align-items:flex-end"><button class="btn" id="sRef" style="width:100%">重新整理</button></div></div>
+   <div class="g2" style="margin-top:10px"><div><label class="l" for="sDept">部門</label><input class="in" id="sDept"></div><div><label class="l" for="sCode">代號</label><input class="in" id="sCode"></div></div>
+   <div class="mut" id="sInfo" style="margin-top:10px"></div><label class="chk"><input type="checkbox" id="sOnlyOk">只計算已審核通過的明細</label>
+   
+   <div class="acts" style="margin-top:10px"><button class="btn p" id="sWord">列印（Word 檔）</button><button class="btn" id="sPdf">匯出 PDF</button></div></div></div>
+ <div class="stage" id="sumStage" style="flex-direction:column;align-items:center;gap:14px"></div>
+</div>
+<div class="bg" id="bg"><div class="sheet">
+ <div class="sh"><b id="shT">新增加班</b><button class="x" id="shX" aria-label="關閉">×</button></div>
+ <div class="sec"><label class="l" for="reason">加班申請事由 <span class="rnote">紅框標示表示已預設時數及種類，無須更動，但可自己調整</span></label><textarea class="in" id="reason" rows="3"></textarea><div class="chips" id="rch"></div></div>
+ <div class="sec"><label class="l">日期（<span id="calT"></span>）</label><div class="cal" id="cal"></div></div>
+ <div class="sec"><label class="l">加班起迄時間</label>
+  <div class="tt"><input class="in" type="time" id="os"><span>至</span><input class="in" type="time" id="oe"></div><div class="chips" id="tch"></div></div>
+ <div class="sec"><label class="l">休息起迄時間</label>
+  <div class="tt"><input class="in" type="time" id="rs"><span>至</span><input class="in" type="time" id="re"></div>
+  <div class="chips" id="rtch"></div>
+  <label class="chk"><input type="checkbox" id="nr">加班期間沒有休息</label>
+  <div class="mut" id="dayHint" style="margin-top:8px"></div></div>
+ <div class="sec"><label class="l">種類</label><div class="types" id="types"></div></div>
+ <div class="sec"><label class="l" style="display:flex;justify-content:space-between;align-items:center">時數<span class="mut" style="font-weight:400;font-size:12px">依加班起迄自動計算，可自己調整</span></label><div class="g3" id="hrs"></div><div class="acts" style="margin-top:8px"><button type="button" class="btn sm" id="recalc" style="flex:none">依時間重新計算</button></div><div class="mut" style="font-size:12px;margin-top:6px">前 2 小時填「前2時」，超過 2 小時的放「後2時」；時數取整到 0.5 小時（四捨五入），每天最多 12 小時。</div></div>
+  <div class="err" id="err"></div>
+ <div class="acts"><button class="btn d hide" id="del">刪除</button><button class="btn" id="saveN">儲存並再新增</button><button class="btn p" id="save">儲存</button></div>
+</div></div>
+<div class="bg" id="dlgBg" style="z-index:60"><div class="dlg"><p id="dMsg"></p><input class="in" id="dIn"><div class="acts" style="margin-top:14px"><button class="btn" id="dNo">取消</button><button class="btn p" id="dOk">確定</button></div></div></div>
+<div class="bg" id="eBg" style="z-index:40"><div class="sheet">
+ <div class="sh"><b>修改加班明細</b><button class="x" id="eX" aria-label="關閉">×</button></div><div class="mut" id="eWho"></div>
+ <div class="g2" style="margin-top:12px"><div><label class="l" for="eDate">日期（月/日）</label><input class="in" id="eDate" maxlength="5" inputmode="numeric" placeholder="MM/DD"></div>
+  <div><label class="l" for="eType">種類</label><select class="in" id="eType"><option value="A">A 平日加班</option><option value="B">B 緊急來院加班</option><option value="C">C 休息日出勤</option></select></div></div>
+ <label class="l" style="margin-top:12px">加班起迄時間</label><div class="tt"><input class="in" type="time" id="eOs"><span>至</span><input class="in" type="time" id="eOe"></div>
+ <label class="l" style="margin-top:12px">休息起迄時間（沒有休息請留空）</label><div class="tt"><input class="in" type="time" id="eRs"><span>至</span><input class="in" type="time" id="eRe"></div>
+ <div class="g3" style="margin-top:12px"><div><label class="l" for="eNorm">正常時數</label><input class="in" id="eNorm" inputmode="decimal"></div><div><label class="l" for="eFront">前2時</label><input class="in" id="eFront" inputmode="decimal"></div><div><label class="l" for="eBack">後2時</label><input class="in" id="eBack" inputmode="decimal"></div></div>
+ <label class="l" for="eTax" style="margin-top:12px">含稅／不含稅</label><select class="in" id="eTax"><option value="ex">不含稅（免稅）</option><option value="in">含稅（應稅）</option></select>
+ <label class="l" for="eReason" style="margin-top:12px">加班申請事由</label><textarea class="in" id="eReason" rows="3"></textarea>
+ <div class="err" id="eErr"></div>
+ <div class="acts"><button class="btn d" id="eDel">刪除這筆</button><button class="btn p" id="eSave">儲存修改</button></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){'use strict';
+let CUR='fill';
+const OT=(window.parent&&window.parent!==window)?window.parent.OTHOST:null;
+const LS=(function(){
+  const db=OT&&OT.db?OT.db():null;
+  if(!db){let s=null;try{s=window.localStorage}catch(e){}const m={};
+    return {getItem:k=>s?s.getItem(k):(k in m?m[k]:null),setItem:(k,v)=>{if(s)s.setItem(k,v);else m[k]=String(v)},removeItem:k=>{if(s)s.removeItem(k);else delete m[k]},
+      key:i=>s?s.key(i):Object.keys(m)[i],get length(){return s?s.length:Object.keys(m).length},flushAll(){},start(cb){cb()},onChange:null}}
+  const cache={},timers={},inflight={};
+  const did=k=>'o'+k.replace(/[^A-Za-z0-9]/g,c=>'_'+c.charCodeAt(0).toString(16));
+  const col=()=>db.collection('ot'),busy=k=>(k in timers)||inflight[k]>0;
+  function flush(k){if(k in timers){clearTimeout(timers[k]);delete timers[k]}
+    const v=cache[k];inflight[k]=(inflight[k]||0)+1;let p;
+    try{p=v===undefined?col().doc(did(k)).delete():col().doc(did(k)).set({k:k,v:v})}catch(e){p=Promise.reject(e)}
+    Promise.resolve(p).then(null,()=>{}).then(()=>{inflight[k]--})}
+  const api={
+    getItem:k=>k in cache?cache[k]:null,
+    setItem(k,v){cache[k]=String(v);if(k in timers)clearTimeout(timers[k]);timers[k]=setTimeout(()=>flush(k),400)},
+    removeItem(k){delete cache[k];if(k in timers)clearTimeout(timers[k]);timers[k]=setTimeout(()=>flush(k),0)},
+    key:i=>Object.keys(cache)[i]||null,get length(){return Object.keys(cache).length},
+    flushAll(){Object.keys(timers).forEach(flush)},onChange:null,
+    start(cb){let first=true;
+      col().onSnapshot(snap=>{const ch=[];
+        snap.docs.forEach(d=>{const x=d.data();if(!x||typeof x.k!=='string'||typeof x.v!=='string'||busy(x.k))return;if(cache[x.k]!==x.v){cache[x.k]=x.v;ch.push(x.k)}});
+        if(first){first=false;cb()}else if(ch.length&&api.onChange)api.onChange(ch)},
+        ()=>{if(first){first=false;cb()}})}};
+  return api})();
+
+const $=s=>document.querySelector(s),MAXR=17,WD='日一二三四五六',
+ TYPES={A:'平日加班',B:'緊急來院加班',C:'休息日出勤'},TC={A:'#2f6f9f',B:'#b4531a',C:'#7a3f98'},
+ DT=['17:30-19:30','18:00-20:00','17:00-19:00'],DR=['急診處方審核','病房臨時醫囑','藥品盤點','業務量大趕工'];
+function sha256(str){
+  const by=new TextEncoder().encode(str),K=[],H=[],isP=x=>{for(let d=2;d*d<=x;d++)if(x%d===0)return false;return true};
+  for(let n=2;K.length<64;n++)if(isP(n)){if(H.length<8)H.push(Math.floor((n**.5%1)*2**32));K.push(Math.floor((n**(1/3)%1)*2**32))}
+  const l=by.length,pad=((l+9+63)>>6)<<6,m=new Uint8Array(pad);m.set(by);m[l]=128;
+  const dv=new DataView(m.buffer);dv.setUint32(pad-4,(l*8)>>>0);dv.setUint32(pad-8,Math.floor(l*8/2**32));
+  let h=H.slice();
+  for(let o=0;o<pad;o+=64){const w=new Array(64);
+    for(let t=0;t<16;t++)w[t]=dv.getUint32(o+t*4);
+    for(let t=16;t<64;t++){const a=w[t-15],c=w[t-2];
+      w[t]=(w[t-16]+((a>>>7|a<<25)^(a>>>18|a<<14)^(a>>>3))+w[t-7]+((c>>>17|c<<15)^(c>>>19|c<<13)^(c>>>10)))|0}
+    let [a,b,c,d,e,f,g,hh]=h;
+    for(let t=0;t<64;t++){
+      const t1=(hh+((e>>>6|e<<26)^(e>>>11|e<<21)^(e>>>25|e<<7))+((e&f)^(~e&g))+K[t]+w[t])|0,
+        t2=(((a>>>2|a<<30)^(a>>>13|a<<19)^(a>>>22|a<<10))+((a&b)^(a&c)^(b&c)))|0;
+      hh=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0}
+    h=[a,b,c,d,e,f,g,hh].map((v,i)=>(h[i]+v)|0)}
+  return h.map(v=>(v>>>0).toString(16).padStart(8,'0')).join('')
+}
+const pwHash=(id,pw)=>sha256('ot-v1:'+id+':'+pw);
+let USER=null;
+const S={h:{},rows:[],rec:{t:[],r:[]}};
+const curKey=()=>USER?'ot-form-v1:'+USER.id+'@'+S.h.yr+'-'+S.h.mo:'';
+function monthData(){S.rows=[];S.rec={t:[],r:[]};
+  try{const d=JSON.parse(LS.getItem(curKey())||'null');if(d){S.rows=(d.rows||[]).filter(r=>r&&r.date);if(d.rec)S.rec=d.rec}}catch(e){}}
+function loadS(u){
+  try{const lk='ot-form-v1:'+u.id,raw=LS.getItem(lk);if(raw){const d=JSON.parse(raw);if(d&&d.h&&d.h.yr&&d.h.mo){const nk=lk+'@'+d.h.yr+'-'+d.h.mo;if(!LS.getItem(nk))LS.setItem(nk,raw);LS.removeItem(lk)}}}catch(e){}
+  const n=new Date();let pr={};try{pr=JSON.parse(LS.getItem('ot-prof-v1:'+u.id)||'{}')||{}}catch(e){}
+  S.h={yr:String(n.getFullYear()-1911),mo:String(n.getMonth()+1),unit:pr.unit||'藥劑課',ucode:pr.ucode||'53690',name:pr.name||u.name||'',empid:pr.empid||u.id};
+  if(u.role==='user'){S.h.name=u.name;S.h.empid=u.id}
+  monthData();
+}
+const save=()=>{if(!USER)return;try{LS.setItem(curKey(),JSON.stringify(S))}catch(e){}};
+const saveProf=()=>{if(!USER)return;try{LS.setItem('ot-prof-v1:'+USER.id,JSON.stringify({unit:S.h.unit,ucode:S.h.ucode,name:S.h.name,empid:S.h.empid}))}catch(e){}};
+const num=s=>{const n=parseFloat(s);return isNaN(n)?0:n},fmt=n=>n===0?'':String(+n.toFixed(2));
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove('show'),3800)};
+const normR=x=>typeof x==='string'?{t:x,ot:'',rest:'',type:'',front:'',back:'',tax:'ex'}:{t:x.t||'',ot:x.ot||'',rest:x.rest||'',type:x.type||'',front:x.front||'',back:x.back||'',tax:x.tax==='in'?'in':'ex'};
+const DEF={maker:'詹智琳',tax:'ex',admin:{id:'admin',name:'admin',h:''},users:[],reasons:DR.map(normR),ot:DT.slice(),rest:[],defOt:'',defRest:'',defWk:'A',defWe:'C'},CK='ot-cfg-v1';
+let cfg=JSON.parse(JSON.stringify(DEF));
+const mergeCfg=o=>{Object.keys(DEF).forEach(k=>{if(o&&o[k]!=null&&typeof o[k]===typeof DEF[k])cfg[k]=o[k]});cfg.reasons=cfg.reasons.map(normR);};
+const saveCfg=()=>{try{const c=Object.assign({},cfg);delete c.admin;delete c.users;LS.setItem(CK,JSON.stringify(c))}catch(e){}};
+function dlg(msg,o){o=o||{};return new Promise(res=>{const i=$('#dIn');$('#dMsg').textContent=msg;i.classList.toggle('hide',!o.input);i.value='';
+  $('#dlgBg').classList.add('on');if(o.input)i.focus();
+  const done=v=>{$('#dlgBg').classList.remove('on');$('#dOk').onclick=$('#dNo').onclick=null;res(v)};
+  $('#dOk').onclick=()=>done(o.input?i.value:true);$('#dNo').onclick=()=>done(o.input?null:false)})}
+const clampMo=v=>{v=String(v).replace(/\D/g,'').slice(0,2);if(v.length===2&&(+v>12||+v<1))v=v[0]==='0'?'0':v[0];return v};
+const MAXDAY=12,tmin=t=>{const m=/^(\d\d):(\d\d)$/.exec(t||'');return m?+m[1]*60+ +m[2]:null},fh=m=>String(+(m/60).toFixed(2));
+function netMin(os,oe,rs,re){const a=tmin(os),b=tmin(oe);if(a==null||b==null)return null;let sp=(b-a+1440)%1440;const c=tmin(rs),d=tmin(re);if(sp&&c!=null&&d!=null)sp-=(d-c+1440)%1440;return Math.max(sp,0)}
+const dayTotal=(date,skip)=>S.rows.reduce((m,r,i)=>m+(i!==skip&&r.date===date?(netMin(r.os,r.oe,r.rs,r.re)||0):0),0);
+const getHead=()=>S.h,getRows=()=>S.rows;
+const sortRows=()=>S.rows.sort((a,b)=>(a.date+(a.os||'')).localeCompare(b.date+(b.os||'')));
+const wd=d=>{const m=d.match(/^(\d\d)\/(\d\d)$/);return m&&S.h.yr?WD[new Date(+S.h.yr+1911,+m[1]-1,+m[2]).getDay()]:''};
+function stats(rows){var s={Af:0,Ab:0,Bn:0,Cn:0,Cf:0,Cb:0};rows.forEach(function(r){if(r.type==='A'){s.Af+=num(r.front);s.Ab+=num(r.back)}else if(r.type==='B'){s.Bn+=num(r.norm)}else if(r.type==='C'){s.Cn+=num(r.norm);s.Cf+=num(r.front);s.Cb+=num(r.back)}});return s}
+
+/*DOCX_START*/
+/* ---------- minimal .xlsx writer (no dependencies) ---------- */
+var CRC = (function(){
+  var t = [], c, n, k;
+  for (n = 0; n < 256; n++){ c = n; for (k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+function crc32(b){ var c = 0xFFFFFFFF; for (var i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipStore(files,type){
+  var enc = new TextEncoder(), chunks = [], central = [], offset = 0;
+  var d = new Date(), dt = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate(), tm = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+  files.forEach(function(f){
+    var name = enc.encode(f.name), data = enc.encode(f.data), crc = crc32(data);
+    var lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true); lh.setUint16(8,0,true);
+    lh.setUint16(10,tm,true); lh.setUint16(12,dt,true); lh.setUint32(14,crc,true);
+    lh.setUint32(18,data.length,true); lh.setUint32(22,data.length,true); lh.setUint16(26,name.length,true); lh.setUint16(28,0,true);
+    chunks.push(new Uint8Array(lh.buffer), name, data);
+    var ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true); ch.setUint16(8,0x0800,true); ch.setUint16(10,0,true);
+    ch.setUint16(12,tm,true); ch.setUint16(14,dt,true); ch.setUint32(16,crc,true);
+    ch.setUint32(20,data.length,true); ch.setUint32(24,data.length,true); ch.setUint16(28,name.length,true);
+    ch.setUint32(42,offset,true);
+    central.push(new Uint8Array(ch.buffer), name);
+    offset += 30 + name.length + data.length;
+  });
+  var csize = 0; central.forEach(function(c){ csize += c.length; });
+  var end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0,0x06054b50,true); end.setUint16(8,files.length,true); end.setUint16(10,files.length,true);
+  end.setUint32(12,csize,true); end.setUint32(16,offset,true);
+  return new Blob(chunks.concat(central, [new Uint8Array(end.buffer)]),
+    {type:type||'application/zip'});
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+
+function buildDocx(head, rows, nRows){
+  var W='http://schemas.openxmlformats.org/wordprocessingml/2006/main', X='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+  var F='<w:rFonts w:ascii="標楷體" w:hAnsi="標楷體" w:eastAsia="標楷體" w:cs="標楷體"/>';
+  function run(t, o){ o = o || {};
+    var rp = F + (o.b ? '<w:b/>' : '') + (o.u ? '<w:u w:val="single"/>' : '') + '<w:sz w:val="' + (o.sz || 20) + '"/><w:szCs w:val="' + (o.sz || 20) + '"/>';
+    return '<w:r><w:rPr>' + rp + '</w:rPr>' + String(t).split('\n').map(function(l, i){ return (i ? '<w:br/>' : '') + '<w:t xml:space="preserve">' + esc(l) + '</w:t>'; }).join('') + '</w:r>';
+  }
+  function para(runs, o){ o = o || {};
+    return '<w:p><w:pPr>' + (o.tabs ? '<w:tabs>' + o.tabs + '</w:tabs>' : '') + '<w:spacing w:before="' + (o.before || 0) + '" w:after="' + (o.after || 0) + '"/>' +
+      (o.ind ? '<w:ind w:left="' + o.ind + '"/>' : '') + '<w:jc w:val="' + (o.jc || 'left') + '"/></w:pPr>' + runs + '</w:p>';
+  }
+  function cell(t, w, o){ o = o || {};
+    var tc = '<w:tcW w:w="' + w + '" w:type="dxa"/>' + (o.span ? '<w:gridSpan w:val="' + o.span + '"/>' : '') + '<w:vAlign w:val="center"/>';
+    var lines = o.small ? run(t, {sz: 20}) + '<w:r><w:br/></w:r>' + run(o.small, {sz: 18}) : run(t, {sz: o.sz || 20, b: o.b});
+    return '<w:tc><w:tcPr>' + tc + '</w:tcPr>' + para(lines, {jc: o.jc || 'center'}) + '</w:tc>';
+  }
+  function row(cells, h){ return '<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="' + h + '" w:hRule="atLeast"/></w:trPr>' + cells + '</w:tr>'; }
+  var bd = '<w:tblBorders>' + ['top','left','bottom','right','insideH','insideV'].map(function(k){ return '<w:' + k + ' w:val="single" w:sz="4" w:space="0" w:color="000000"/>'; }).join('') + '</w:tblBorders>';
+  function table(w, grid, rowsXml, jc){
+    return '<w:tbl><w:tblPr><w:tblW w:w="' + w + '" w:type="dxa"/><w:jc w:val="' + (jc || 'left') + '"/>' + bd + '<w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="40" w:type="dxa"/><w:right w:w="40" w:type="dxa"/></w:tblCellMar></w:tblPr>' +
+      '<w:tblGrid>' + grid.map(function(g){ return '<w:gridCol w:w="' + g + '"/>'; }).join('') + '</w:tblGrid>' + rowsXml + '</w:tbl>';
+  }
+  var cw = [800,1500,1500,3782,561,663,699,699], body = '';
+  body += para(run('彰化基督教醫療財團法人員林基督教醫院', {b:true, sz:32}), {jc:'center', after:200});
+  var T2 = '<w:tab w:val="left" w:pos="4300"/><w:tab w:val="left" w:pos="7200"/>', TB = '<w:r><w:tab/></w:r>';
+  var Z = {sz:24};
+  body += para(run(' ' + head.yr + ' 年 ' + head.mo + ' 月 ', {u:true, sz:24}) + run('加班事由申請單', Z) + TB + run('單位名稱：' + head.unit, Z) + TB + run('單位代號：' + head.ucode, Z), {tabs:T2, after:140});
+  body += para(TB + run('員工姓名：' + head.name, Z) + TB + run('員工代號：' + head.empid, Z), {tabs:T2, after:160});
+  var hdr = ['日期\n(月/日)','加班\n起迄時間','休息\n起迄時間','','*種\n類','正常\n時數','前\n2時','後\n2時'];
+  var rx = row(hdr.map(function(t, i){
+    return i === 3 ? cell('加班申請事由', cw[3], {small:'(如加班起迄時段無給予休息時間，請特別說明未休息特殊原因)'}) : cell(t, cw[i]);
+  }).join(''), 560);
+  for (var i = 0; i < nRows; i++){
+    var r = rows[i] || {}, v = [r.date, r.os ? r.os + '~' + r.oe : '', r.rs ? r.rs + '~' + r.re : '', r.reason, r.type, r.norm, r.front, r.back];
+    rx += row(v.map(function(t, j){ return cell(t || '', cw[j], {jc: j === 3 ? 'left' : 'center'}); }).join(''), 500);
+  }
+  body += table(10204, cw, rx);
+  body += para(run('＊種類：A-平日加班　B-緊急來院加班　C-休息日出勤加班', Z), {before:40});
+  body += para(run('申請人簽名：', Z), {ind:5800, before:40, after:40});
+  body += para(run('統計:', Z), {after:40});
+  var st = stats(rows), g6 = [1550,1550,2704,1466,1467,1467];
+  function fm(n){ return n ? String(+n.toFixed(2)) : ''; }
+  var sx = row(cell('平日加班(A)', 3100, {span:2, b:true, sz:24}) + cell('緊急來院加班(B)', 2704, {b:true, sz:24}) + cell('休息日出勤 (C)', 4400, {span:3, b:true, sz:24}), 440);
+  sx += row(['前 2 小時','後 2 小時','正常時數','正常時數','前 2 小時','後 2 小時'].map(function(t, i){ return cell(t, g6[i], {b:true, sz:24}); }).join(''), 440);
+  sx += row([st.Af, st.Ab, st.Bn, st.Cn, st.Cf, st.Cb].map(function(n, i){ return cell(fm(n), g6[i], {sz:24}); }).join(''), 520);
+  body += table(10204, g6, sx);
+  body += para(run('製表人：', Z) + run(head.maker || '', {sz:24}) + TB + run('單位主管簽名：', Z), {tabs:'<w:tab w:val="left" w:pos="5800"/>', before:420});
+  var sect = '<w:sectPr><w:footerReference w:type="default" r:id="rId3"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="851" w:right="851" w:bottom="851" w:left="851" w:header="567" w:footer="400" w:gutter="0"/></w:sectPr>';
+  var doc = X + '<w:document xmlns:w="' + W + '" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>' + body + sect + '</w:body></w:document>';
+  var ft = F + '<w:sz w:val="16"/>';
+  var footer = X + '<w:ftr xmlns:w="' + W + '"><w:p><w:pPr><w:tabs><w:tab w:val="center" w:pos="5102"/></w:tabs><w:spacing w:before="0" w:after="0"/></w:pPr><w:r><w:rPr>' + ft + '</w:rPr><w:t>53003-01-013</w:t></w:r><w:r><w:rPr>' + ft + '</w:rPr><w:tab/><w:t>2019/05</w:t></w:r></w:p></w:ftr>';
+  var styles = X + '<w:styles xmlns:w="' + W + '"><w:docDefaults><w:rPrDefault><w:rPr>' + F + '<w:sz w:val="20"/><w:szCs w:val="20"/><w:lang w:val="en-US" w:eastAsia="zh-TW"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>';
+  var R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  return zipStore([
+    {name:'[Content_Types].xml', data:X + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/></Types>'},
+    {name:'_rels/.rels', data:X + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="' + R + '/officeDocument" Target="word/document.xml"/></Relationships>'},
+    {name:'word/_rels/document.xml.rels', data:X + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId2" Type="' + R + '/styles" Target="styles.xml"/><Relationship Id="rId3" Type="' + R + '/footer" Target="footer1.xml"/></Relationships>'},
+    {name:'word/document.xml', data:doc}, {name:'word/styles.xml', data:styles}, {name:'word/footer1.xml', data:footer}
+  ], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+}
+/*DOCX_END*/
+
+/* ---------- render ---------- */
+function renderPaper(){
+  $('#pmaker').textContent=cfg.maker;
+  const h=S.h;[['yr','pyr'],['mo','pmo'],['unit','punit'],['ucode','pucode'],['name','pname'],['empid','pempid']].forEach(p=>$('#'+p[1]).textContent=h[p[0]]);
+  let b='';for(let i=0;i<MAXR;i++){const r=S.rows[i]||{};
+    b+='<tr><td>'+esc(r.date||'')+'</td><td>'+(r.os?esc(r.os+'~'+r.oe):'')+'</td><td>'+(r.rs?esc(r.rs+'~'+r.re):'')+'</td><td class="l">'+esc(r.reason||'')+'</td><td>'+esc(r.type||'')+'</td><td>'+esc(r.norm||'')+'</td><td>'+esc(r.front||'')+'</td><td>'+esc(r.back||'')+'</td></tr>'}
+  $('#tbody').innerHTML=b;
+  const s=stats(S.rows);Object.keys(s).forEach(k=>$('#s'+k).textContent=fmt(s[k]));
+}
+function renderList(){
+  const L=$('#list');$('#cnt').textContent=S.rows.length?'（'+S.rows.length+' / '+MAXR+' 筆）':'';
+  L.innerHTML=S.rows.length?S.rows.map((r,i)=>{const rv=loadRev()[S.h.yr+'-'+S.h.mo]||{},rr=rrOf(rv,S.h.empid||(USER&&USER.id),r),stx=rr?('<div class="mut" style="color:'+(rr.st==='rej'?'#c0392b':'#1f7a4d')+'">'+(rr.st==='rej'?'已退回'+(rr.note?'：'+esc(rr.note):''):'已通過')+'</div>'):'<div class="mut">待審核</div>';
+    const hs=[r.norm&&'正常 '+r.norm,r.front&&'前2時 '+r.front,r.back&&'後2時 '+r.back,r.tax==='in'?'含稅':'不含稅'].filter(Boolean).join('<br>');
+    return '<div class="ent" data-i="'+i+'"><div class="badge" style="background:'+TC[r.type]+'">'+r.type+'</div><div class="m"><div><b>'+esc(r.date)+'（'+wd(r.date)+'）</b> '+esc(r.os)+'–'+esc(r.oe)+'</div><div class="mut">'+esc(r.reason)+'</div>'+stx+'</div><div class="hrs">'+hs+'</div></div>'}).join('')
+   :'<div class="empty">還沒有資料，按下方「新增加班」開始</div>';
+  const s=stats(S.rows),p=[];
+  if(s.Af||s.Ab)p.push('平日 前2時 '+(fmt(s.Af)||0)+'、後2時 '+(fmt(s.Ab)||0));if(s.Bn)p.push('緊急來院 '+fmt(s.Bn));
+  if(s.Cn||s.Cf||s.Cb)p.push('休息日 正常 '+(fmt(s.Cn)||0)+'、前2時 '+(fmt(s.Cf)||0)+'、後2時 '+(fmt(s.Cb)||0));
+  $('#sum').textContent=p.length?'合計：'+p.join('；'):'';$('#sum').style.display=p.length?'':'none';
+}
+const refresh=()=>{sortRows();renderList();renderPaper();save()};
+function greetName(n){n=(n||'').trim();if(!n)return '';return /^[\u4e00-\u9fff]+$/.test(n)&&n.length>2?n.slice(-2):n}
+const updGreet=()=>{const g=(OT&&OT.call&&OT.call())||greetName(S.h.name);$('#greet').textContent=g?g+'，平安':''};
+const MOPT=[...Array(12)].map((_,i)=>'<option value="'+(i+1)+'">'+(i+1)+' 月</option>').join(''),CY=new Date().getFullYear()-1911;
+['h_mo','sMo','dMo'].forEach(id=>$('#'+id).innerHTML=MOPT);$('#h_yr').innerHTML=[CY-1,CY,CY+1].map(y=>'<option value="'+y+'">'+y+'</option>').join('');
+function setSel(el,v){v=String(v);if(![...el.options].some(o=>o.value===v))el.add(new Option(v,v));el.value=v}
+['unit','ucode','name','empid'].forEach(k=>{const e=$('#h_'+k);e.oninput=()=>{S.h[k]=e.value.trim();save();saveProf();renderPaper();updGreet()}});
+['yr','mo'].forEach(k=>{$('#h_'+k).onchange=e=>{save();S.h[k]=e.target.value;monthData();refresh()}});
+
+/* ---------- tabs ---------- */
+function view(v){CUR=v;['Fill','Prev','Admin','Sum','Det'].forEach(n=>$('#v'+n).classList.toggle('hide',n.toLowerCase()!==v));
+  $('#fab').classList.toggle('hide',v!=='fill');$('#tFill').classList.toggle('on',v==='fill');$('#tPrev').classList.toggle('on',v==='prev');$('#tAdm').classList.toggle('on',v==='admin'||v==='sum'||v==='det');fit();scrollTo(0,0)}
+$('#tFill').onclick=()=>view('fill');$('#tPrev').onclick=()=>view('prev');
+function fit(){document.documentElement.style.setProperty('--topH',($('.top').offsetHeight||57)+'px');const a=document.documentElement.clientWidth-16,z=a<794?a/794:1;document.querySelectorAll('.paper').forEach(p=>p.style.zoom=z)}
+addEventListener('resize',fit);
+
+/* ---------- entry sheet ---------- */
+let E,editing=-1,typeSet=false;
+const blank=()=>({tax:'',date:'',os:'',oe:'',rs:'',re:'',nr:false,type:'',norm:'',front:'',back:'',reason:''});
+function openSheet(i){
+  editing=i;typeSet=i>=0;E=i>=0?Object.assign(blank(),S.rows[i],{nr:!S.rows[i].rs}):blank();E.nm=!!E.norm;E.manual=i>=0;
+  if(i<0){const o=cfg.defOt.split('-'),r=cfg.defRest.split('-');if(o[1]){E.os=o[0];E.oe=o[1]}if(r[1]){E.rs=r[0];E.re=r[1]}}
+  $('#shT').textContent=i>=0?'編輯加班':'新增加班';$('#del').classList.toggle('hide',i<0);$('#saveN').classList.toggle('hide',i>=0);
+  ['os','oe','rs','re','reason'].forEach(k=>$('#'+k).value=E[k]);$('#nr').checked=E.nr;
+  drawCal();drawTypes();drawHrs();drawChips();syncRest();$('#err').textContent='';$('#bg').classList.add('on');$('.sheet').scrollTop=0;document.body.style.overflow='hidden';
+}
+const closeSheet=()=>{$('#bg').classList.remove('on');document.body.style.overflow=''};
+function dayHint(){const n=$('#nr').checked,mine=netMin($('#os').value,$('#oe').value,n?'':$('#rs').value,n?'':$('#re').value),h=$('#dayHint');
+  if(mine==null||!E||!E.date){h.textContent='';return}const tot=dayTotal(E.date,editing)+mine;
+  h.textContent='本筆 '+fh(mine)+' 小時，'+E.date+' 當日合計 '+fh(tot)+' 小時（每天上限 '+MAXDAY+' 小時）';h.style.color=tot>MAXDAY*60?'#c0392b':''}
+function autoHours(){
+  const n=$('#nr').checked,m=netMin($('#os').value,$('#oe').value,n?'':$('#rs').value,n?'':$('#re').value);
+  if(m){const h=Math.round(m/60*2)/2,f=x=>String(+x.toFixed(2));
+    if(E.type==='A'||E.type==='C'){E.front=f(Math.min(h,2));E.back=h>2?f(h-2):''}
+    else if(E.type==='B')E.norm=f(h)}
+  drawHrs()}
+function refreshHrs(){if(!E)return;if(E.manual)drawHrs();else autoHours()}
+function drawCal(){
+  const Y=+S.h.yr+1911,M=+S.h.mo;$('#calT').textContent=S.h.yr&&M?'民國 '+S.h.yr+' 年 '+M+' 月':'請先填基本資料的年月';
+  if(!S.h.yr||!(M>=1&&M<=12)){$('#cal').innerHTML='';return}
+  const f=new Date(Y,M-1,1).getDay(),n=new Date(Y,M,0).getDate();
+  let h=[...WD].map(c=>'<b>'+c+'</b>').join('')+'<i></i>'.repeat(f);
+  for(let d=1;d<=n;d++){const ds=String(M).padStart(2,'0')+'/'+String(d).padStart(2,'0'),w=(f+d-1)%7;
+    h+='<button type="button" data-d="'+ds+'" class="'+(w%6===0?'wk ':'')+(E.date===ds?'sel ':'')+(S.rows.some((r,j)=>r.date===ds&&j!==editing)?'has':'')+'">'+d+'</button>'}
+  $('#cal').innerHTML=h;
+}
+$('#cal').onclick=e=>{const d=e.target.dataset&&e.target.dataset.d;if(!d)return;E.date=d;
+  if(!typeSet){const w=wd(d);E.type=(w==='六'||w==='日')?cfg.defWe:cfg.defWk;drawTypes();refreshHrs()}drawCal()};
+function drawTypes(){$('#types').innerHTML=Object.keys(TYPES).map(k=>'<button type="button" data-t="'+k+'" style="--c:'+TC[k]+'" class="'+(E.type===k?'on':'')+'"><b>'+k+'</b>'+TYPES[k]+'</button>').join('')}
+$('#types').onclick=e=>{const b=e.target.closest('button');if(!b)return;E.type=b.dataset.t;typeSet=true;drawTypes();refreshHrs()};
+function drawHrs(){
+  const f={A:['front','back'],B:['norm'],C:['norm','front','back']}[E.type],L={norm:'正常時數',front:'前2時',back:'後2時'};
+  if(!f){$('#hrs').innerHTML='<div class="mut" style="grid-column:1/4">請先選擇種類</div>';return}
+  let h=f.map(k=>{const off=k==='norm'&&E.type==='C'&&!E.nm;
+    return '<div><label class="l" for="x_'+k+'">'+L[k]+'</label><input class="in" id="x_'+k+'" data-k="'+k+'" inputmode="decimal"'+(off?' disabled':' value="'+esc(E[k])+'"')+'></div>'}).join('');
+  if(E.type==='C')h+='<label class="chk" style="grid-column:1/4"><input type="checkbox" id="nm"'+(E.nm?' checked':'')+'>需要填正常時數（預設不開放）</label>';
+  $('#hrs').innerHTML=h;
+}
+$('#hrs').oninput=e=>{if(e.target.dataset.k){E[e.target.dataset.k]=e.target.value.trim();E.manual=true}};$('#recalc').onclick=()=>{E.manual=false;refreshHrs()};
+$('#hrs').onchange=e=>{if(e.target.id==='nm'){E.nm=e.target.checked;if(!E.nm)E.norm='';drawHrs()}};
+function drawChips(){
+  const chip=(k,t)=>'<button type="button" class="chip" data-'+k+'="'+esc(t)+'">'+esc(t.replace('-','–'))+'</button>';
+  $('#tch').innerHTML=cfg.ot.map(t=>chip('t',t)).join('');$('#rtch').innerHTML=cfg.rest.map(t=>chip('t',t)).join('');
+  $('#rch').innerHTML=cfg.reasons.map((r,i)=>'<button type="button" class="chip'+(r.ot||r.rest||r.type||r.front||r.back?' pre':'')+'" data-r="'+i+'">'+esc(r.t)+'</button>').join('');
+}
+$('#rtch').onclick=e=>{const t=e.target.dataset.t;if(!t)return;const p=t.split('-');$('#nr').checked=false;syncRest();$('#rs').value=p[0];$('#re').value=p[1];refreshHrs()};
+$('#tch').onclick=e=>{const t=e.target.dataset.t;if(!t)return;const p=t.split('-');$('#os').value=p[0];$('#oe').value=p[1];refreshHrs()};
+$('#rch').onclick=e=>{const i=e.target.dataset.r;if(i==null)return;const o=cfg.reasons[+i],r=$('#reason');
+  r.value=r.value.trim()?r.value.trim()+'；'+o.t:o.t;
+  if(o.ot){const p=o.ot.split('-');$('#os').value=p[0];$('#oe').value=p[1]}
+  if(o.rest){const p=o.rest.split('-');$('#nr').checked=false;syncRest();$('#rs').value=p[0];$('#re').value=p[1]}
+  if(o.type){E.type=o.type;typeSet=true;drawTypes()}
+  E.tax=o.tax;if(o.front||o.back){E.front=o.front||'';E.back=o.back||'';E.manual=false;drawHrs()}else refreshHrs()};
+function syncRest(){const n=$('#nr').checked;$('#rs').disabled=$('#re').disabled=n;if(n){$('#rs').value=$('#re').value=''}
+  $('#reason').placeholder=n?'請說明未休息的特殊原因':''}
+$('#nr').onchange=syncRest;
+$('.sheet').addEventListener('input',e=>{if(['os','oe','rs','re'].indexOf(e.target.id)>=0)refreshHrs()});$('.sheet').addEventListener('change',e=>{if(e.target.id==='nr')refreshHrs()});
+$('.sheet').addEventListener('input',dayHint);$('.sheet').addEventListener('change',dayHint);$('.sheet').addEventListener('click',()=>setTimeout(dayHint,0));
+$('#shX').onclick=closeSheet;$('#bg').onclick=e=>{if(e.target.id==='bg')closeSheet()};
+$('#fab').onclick=()=>{if(S.rows.length>=MAXR)return toast('表單一頁最多 '+MAXR+' 筆');openSheet(-1)};
+$('#list').onclick=e=>{const r=e.target.closest('.ent');if(r)openSheet(+r.dataset.i)};
+$('#del').onclick=async()=>{if(await dlg('刪除這一筆加班？')){S.rows.splice(editing,1);refresh();closeSheet()}};
+
+function commit(again){
+  ['os','oe','rs','re'].forEach(k=>E[k]=$('#'+k).value);E.reason=$('#reason').value.trim();E.nr=$('#nr').checked;
+  const f={A:['front','back'],B:['norm'],C:E.nm?['norm','front','back']:['front','back']}[E.type]||[];
+  const bad=!E.reason?'請填寫加班事由':!E.date?'請選擇日期':!E.os||!E.oe?'請填加班起迄時間':!E.type?'請選擇種類':
+   !f.some(k=>num(E[k])>0)?'請填寫時數':(!E.nr&&!(E.rs&&E.re))?'請填休息起迄時間，或勾選「沒有休息」並說明原因':'';
+  let bad2=bad;
+  if(!bad2){const n=E.nr,mine=netMin(E.os,E.oe,n?'':E.rs,n?'':E.re);
+    if(!mine)bad2='加班起迄時間不正確（起迄不能相同）';
+    else{const tot=dayTotal(E.date,editing)+mine;if(tot>MAXDAY*60)bad2=E.date+' 當日加班合計 '+fh(tot)+' 小時，超過每天上限 '+MAXDAY+' 小時'}}
+  if(bad2){$('#err').textContent=bad2;return}
+  const r={date:E.date,os:E.os,oe:E.oe,rs:E.nr?'':E.rs,re:E.nr?'':E.re,reason:E.reason,type:E.type,
+    norm:f.includes('norm')?E.norm:'',front:f.includes('front')?E.front:'',back:f.includes('back')?E.back:''};
+  r.tax=E.tax||cfg.tax;
+  if(editing>=0)S.rows[editing]=r;else S.rows.push(r);
+  const t=E.os+'-'+E.oe;S.rec.t=[t].concat(S.rec.t.filter(x=>x!==t)).slice(0,5);
+  if(E.reason.length<=24)S.rec.r=[E.reason].concat(S.rec.r.filter(x=>x!==E.reason)).slice(0,6);
+  refresh();
+  if(again&&S.rows.length<MAXR){toast('已新增 '+E.date);openSheet(-1)}else{closeSheet();toast('已儲存')}
+}
+$('#save').onclick=()=>commit(false);$('#saveN').onclick=()=>commit(true);
+
+/* ---------- admin ---------- */
+function drawAdmin(){
+  const li=(arr,kind,def)=>arr.length?arr.map((v,i)=>'<div class="it"><span>'+esc(v.replace('-','–'))+'</span>'+(def?'<button class="star'+(cfg[def]===v?' on':'')+'" data-a="star" data-k="'+def+'" data-v="'+esc(v)+'" title="設為預設">★</button>':'')+'<button class="del2" data-a="del" data-k="'+kind+'" data-i="'+i+'" aria-label="刪除">×</button></div>').join(''):'<div class="mut">尚無選項</div>';
+  $('#aReasons').innerHTML=cfg.reasons.length?cfg.reasons.map((r,i)=>{const m=[r.ot&&'加班 '+r.ot.replace('-','–'),r.rest&&'休息 '+r.rest.replace('-','–'),r.type&&'種類 '+r.type,r.front&&'前2時 '+r.front,r.back&&'後2時 '+r.back].filter(Boolean).join('｜');
+    return '<div class="it"><span>'+esc(r.t)+(m?'<br><small class="mut">'+esc(m)+'</small>':'')+'</span><button class="mv" data-a="up" data-i="'+i+'"'+(i?'':' disabled')+' aria-label="上移">▲</button><button class="mv" data-a="dn" data-i="'+i+'"'+(i<cfg.reasons.length-1?'':' disabled')+' aria-label="下移">▼</button><button class="btn" data-a="editR" data-i="'+i+'">編輯</button><button class="del2" data-a="del" data-k="reasons" data-i="'+i+'" aria-label="刪除">×</button></div>'}).join(''):'<div class="mut">尚無選項</div>';$('#aOt').innerHTML=li(cfg.ot,'ot','defOt');$('#aRest').innerHTML=li(cfg.rest,'rest','defRest');
+  const o='<option value="">不預設</option>'+Object.keys(TYPES).map(k=>'<option value="'+k+'">'+k+'　'+TYPES[k]+'</option>').join('');
+  const rv=$('#rType').value;$('#rType').innerHTML=o;$('#rType').value=rv;$('#dWk').innerHTML=o;$('#dWe').innerHTML=o;$('#dWk').value=cfg.defWk;$('#dWe').value=cfg.defWe;$('#admId').textContent=cfg.admin.id;$('#taxSel').value=cfg.tax;$('#nMaker').value=cfg.maker;drawUsers();
+}
+function drawUsers(){$('#aUsers').innerHTML=cfg.users.length?cfg.users.map((u,i)=>'<div class="it"><span>'+esc(u.name)+'（'+esc(u.id)+'）</span><button class="btn" data-a="pw" data-i="'+i+'">重設密碼</button><button class="del2" data-a="deluser" data-i="'+i+'" aria-label="刪除">×</button></div>').join(''):'<div class="mut">尚未新增員工帳號</div>'}
+let editingR=-1;
+const aChange=()=>{saveCfg();drawAdmin()};
+$('#tAdm').onclick=()=>{if(USER&&USER.role==='admin'){drawAdmin();view('admin')}};
+$('#aBack').onclick=()=>view('fill');
+$('#vAdmin').onclick=e=>{const d=e.target.dataset;if(!d||!d.a)return;
+  if(d.a==='up'||d.a==='dn'){const i=+d.i,j=d.a==='up'?i-1:i+1,R=cfg.reasons;if(j>=0&&j<R.length){const t=R[i];R[i]=R[j];R[j]=t;if(editingR===i)editingR=j;else if(editingR===j)editingR=i;aChange()}return}
+  if(d.a==='editR'){const r=cfg.reasons[+d.i];editingR=+d.i;$('#nReason').value=r.t;const a=r.ot.split('-'),b=r.rest.split('-');
+    $('#rOs').value=a[0]||'';$('#rOe').value=a[1]||'';$('#rRs').value=b[0]||'';$('#rRe').value=b[1]||'';$('#rType').value=r.type;$('#rFront').value=r.front;$('#rBack').value=r.back;$('#rTax').value=r.tax;
+    $('#addReason').textContent='儲存修改';$('#rCancel').classList.remove('hide');$('#rFormT').textContent='編輯事由選項';$('#nReason').focus();return}
+  if(d.a==='pw'){const u=cfg.users[+d.i];dlg('請輸入「'+u.name+'」的新密碼',{input:1}).then(p=>{if(p){u.h=pwHash(u.id,p);aChange();toast('密碼已重設')}});return}
+  if(d.a==='deluser'){dlg('刪除這個帳號？').then(ok=>{if(ok){cfg.users.splice(+d.i,1);aChange()}});return}
+  if(d.a==='del'){if(d.k==='reasons')resetR();const v=cfg[d.k].splice(+d.i,1)[0];if(cfg.defOt===v)cfg.defOt='';if(cfg.defRest===v)cfg.defRest=''}
+  else if(d.a==='star')cfg[d.k]=cfg[d.k]===d.v?'':d.v;
+  aChange()};
+const resetR=()=>{editingR=-1;['nReason','rOs','rOe','rRs','rRe','rFront','rBack'].forEach(k=>$('#'+k).value='');$('#rType').value='';$('#rTax').value='ex';$('#addReason').textContent='新增';$('#rCancel').classList.add('hide');$('#rFormT').textContent='新增事由選項'};
+$('#addReason').onclick=()=>{const t=$('#nReason').value.trim();if(!t)return toast('請輸入事由內容');
+  const os=$('#rOs').value,oe=$('#rOe').value,rs=$('#rRs').value,re=$('#rRe').value;
+  if(!os!==!oe||!rs!==!re)return toast('起迄時間請填完整');
+  const fr=$('#rFront').value.trim(),bk=$('#rBack').value.trim();
+  if((fr&&isNaN(+fr))||(bk&&isNaN(+bk)))return toast('前2時、後2時請填數字');
+  const r={t,ot:os?os+'-'+oe:'',rest:rs?rs+'-'+re:'',type:$('#rType').value,front:fr,back:bk,tax:$('#rTax').value};
+  if(editingR>=0)cfg.reasons[editingR]=r;else{const k=cfg.reasons.findIndex(x=>x.t===t);if(k>=0)cfg.reasons[k]=r;else cfg.reasons.push(r)}
+  resetR();aChange()};
+$('#rCancel').onclick=resetR;
+const addT=(a,b,k)=>{const x=$('#'+a).value,y=$('#'+b).value;if(!x||!y)return toast('請填完整的起迄時間');const v=x+'-'+y;if(!cfg[k].includes(v))cfg[k].push(v);$('#'+a).value=$('#'+b).value='';aChange()};
+$('#addOt').onclick=()=>addT('aos','aoe','ot');$('#addRest').onclick=()=>addT('ars','are','rest');
+$('#saveMaker').onclick=()=>{cfg.maker=$('#nMaker').value.trim();saveCfg();renderPaper();toast('製表人已更新')};
+$('#taxSel').onchange=e=>{cfg.tax=e.target.value;saveCfg();toast('已設定為'+(cfg.tax==='in'?'含稅':'不含稅'))};
+$('#dWk').onchange=e=>{cfg.defWk=e.target.value;saveCfg()};$('#dWe').onchange=e=>{cfg.defWe=e.target.value;saveCfg()};
+const addUser=(id,name,pw)=>{id=id.trim();name=name.trim();pw=pw.trim();if(!id||!name||!pw)return '資料不完整';if(id===cfg.admin.id)return '此代號為管理人';if(cfg.users.some(u=>u.id===id))return id+' 已存在';cfg.users.push({id,name,h:pwHash(id,pw)});return ''};
+$('#addUser').onclick=()=>{const m=addUser($('#uId').value,$('#uName').value,$('#uPw').value);if(m)return toast(m);['uId','uName','uPw'].forEach(k=>$('#'+k).value='');aChange();toast('已新增')};
+$('#bulkUser').onclick=()=>{let ok=0;const bad=[];$('#uBulk').value.split(/\n/).forEach(l=>{if(!l.trim())return;const p=l.split(/[,，\t]/);addUser(p[0]||'',p[1]||'',p[2]||'')?bad.push(l.trim()):ok++});
+  $('#uBulk').value=bad.join('\n');aChange();toast('新增 '+ok+' 人'+(bad.length?'，'+bad.length+' 行失敗，已留在框內':''))};
+$('#saveAdm').onclick=()=>{const v=$('#nAdmPw').value.trim();if(!v)return toast('請輸入新密碼');cfg.admin.h=pwHash(cfg.admin.id,v);$('#nAdmPw').value='';saveCfg();toast('管理人密碼已更新')};
+$('#aExp').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(cfg,null,2)],{type:'application/json'}));a.download='config.json';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);toast('已匯出 config.json，請放到網頁同一個資料夾')};
+$('#aImp').onclick=()=>$('#aFile').click();
+$('#aFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{mergeCfg(JSON.parse(r.result));aChange();toast('已匯入設定')}catch(x){toast('設定檔格式不正確')}};r.readAsText(f);e.target.value=''};
+$('#aRst').onclick=async()=>{if(!await dlg('要把選項還原成預設嗎？（帳號不會被清除）'))return;const a=cfg.admin,u=cfg.users;cfg=JSON.parse(JSON.stringify(DEF));cfg.admin=a;cfg.users=u;saveCfg();drawAdmin();toast('已還原預設選項')};
+
+/* ---------- 加班費總表 ---------- */
+const SK='ot-sum-v1';
+const loadSum=()=>{try{return JSON.parse(LS.getItem(SK)||'{}')||{}}catch(e){return {}}};
+const saveSum=o=>{try{LS.setItem(SK,JSON.stringify(o))}catch(e){}};
+const uname=id=>{const s=(OT&&OT.staff)?OT.staff():{};return s[id]||(id===cfg.admin.id?cfg.admin.name:'')||''};
+function aggregate(yr,mo){
+  const map={};
+  try{for(let i=0;i<LS.length;i++){const k=LS.key(i);if(!k||k.indexOf('ot-form-v1:')!==0)continue;
+    const d=JSON.parse(LS.getItem(k)||'null');if(!d||!d.h||String(d.h.yr)!==yr||String(d.h.mo)!==mo||!(d.rows&&d.rows.length))continue;
+    const id=d.h.empid||k.slice(11).split('@')[0];map[id]={id,name:d.h.name||uname(id),rows:d.rows,src:'本機',key:k}}}catch(e){}
+  const m=loadSum()[yr+'-'+mo]||{};Object.keys(m).forEach(id=>{if(m[id]&&m[id].rows&&m[id].rows.length)map[id]={id,name:m[id].name||uname(id),rows:m[id].rows,src:'匯入'}});
+  return Object.keys(map).map(k=>map[k]).sort((a,b)=>String(a.id).localeCompare(String(b.id),'zh-Hant',{numeric:true}));
+}
+function calc(rows){
+  const t={ex:{Af:0,Ab:0,Bn:0},in:{Af:0,Ab:0,Bn:0},C:{n:0,f:0,b:0}};
+  rows.forEach(r=>{const k=r.tax==='in'?'in':'ex';
+    if(r.type==='A'){t[k].Af+=num(r.front);t[k].Ab+=num(r.back)}else if(r.type==='B'){t[k].Bn+=num(r.norm)}
+    else if(r.type==='C'){t.C.n+=num(r.norm);t.C.f+=num(r.front);t.C.b+=num(r.back)}});
+  return t}
+const sval=()=>({yr:$('#sYr').value.trim(),mo:$('#sMo').value.trim()});
+const SCOLS='<colgroup><col style="width:12.4%"><col style="width:13.6%"><col style="width:9.8%"><col style="width:8.6%"><col style="width:8.6%"><col style="width:17.3%"><col style="width:11.2%"><col style="width:8.8%"><col style="width:9.7%"></colgroup>',
+ SHEAD='<thead><tr><th rowspan="2">CODE</th><th rowspan="2">員工姓名</th><th colspan="3">平日加班</th><th>緊急來院加班</th><th colspan="3">休息日加班</th></tr><tr><th>類別</th><th>前2hr</th><th>後2hr</th><th>正常時數</th><th>正常時數</th><th>前2hr</th><th>後2hr</th></tr></thead>';
+function sblock(p){const t=calc(p.rows);
+  return '<tbody class="blk"><tr><td rowspan="2">'+esc(p.id)+'</td><td rowspan="2">'+esc(p.name)+'</td><td>免稅(hr)</td><td>'+fmt(t.ex.Af)+'</td><td>'+fmt(t.ex.Ab)+'</td><td>'+fmt(t.ex.Bn)+'</td><td rowspan="2">'+fmt(t.C.n)+'</td><td rowspan="2">'+fmt(t.C.f)+'</td><td rowspan="2">'+fmt(t.C.b)+'</td></tr>'+
+   '<tr><td>應稅(hr)</td><td>'+fmt(t.in.Af)+'</td><td>'+fmt(t.in.Ab)+'</td><td>'+fmt(t.in.Bn)+'</td></tr></tbody>'}
+function spage(first,blocks,last,v){
+  return '<div class="paper sumpaper">'+(first?'<h1>彰化基督教醫療財團法人員林基督教醫院</h1><div class="sm1"><span class="v ul w-yr">'+esc(v.yr)+'</span>年 <span class="v ul w-mo">'+esc(v.mo)+'</span>月 加班費用計算彙總表<b>(請附加班事由申請單)</b>　部門：<span class="ul">'+esc($('#sDept').value)+'</span></div><div class="sm2"><span style="color:#e00">■ 注意：本月加班費需完成事前簽呈核定(詳細規則請參閱規章N9)</span>　代號：<span class="ul">'+esc($('#sCode').value)+'</span></div>':'')+
+   (blocks.length?'<table class="grid sumtb">'+SCOLS+SHEAD+blocks.join('')+'</table>':'')+
+   (last?'<div class="snote">說明：1. 員工代號務必正確。<br>　　　2. 平日、休息日、緊急加班免稅加班時數(包括前2hr後2hr)合計男生46小時、女生46小時。<br>　　　3. 假日加班時數屬免稅</div><div class="ssign">行政副院長：<span class="line"></span>　行政處：<span class="line"></span>　單位主管：<span class="line"></span>　製表人：<span>'+esc(cfg.maker)+'</span></div>':'')+
+   '<div class="foot"><span>53003-01-014</span><span>2019/05</span><span></span></div></div>'}
+function renderSum(){
+  const v=sval();let list=aggregate(v.yr,v.mo);if($('#sOnlyOk').checked){const rv=loadRev()[v.yr+'-'+v.mo]||{};list=list.map(p=>Object.assign({},p,{rows:p.rows.filter(r=>{const x=rrOf(rv,p.id,r);return x&&x.st!=='rej'})})).filter(p=>p.rows.length)};
+  const items=list.length?list.map(sblock):['<tbody><tr><td colspan="9">尚無申請資料</td></tr></tbody>'],pages=[];let i=0;
+  for(;;){const cap=pages.length?15:13;pages.push(items.slice(i,i+cap));i+=cap;if(i>=items.length)break}
+  if(pages[pages.length-1].length>(pages.length>1?15:13)-3)pages.push([]);
+  $('#sumStage').innerHTML=pages.map((b,k)=>spage(k===0,b,k===pages.length-1,v)).join('');
+  const im=list.filter(x=>x.src==='匯入').length;
+  $('#sInfo').textContent=v.yr&&v.mo?(v.yr+' 年 '+v.mo+' 月：共 '+list.length+' 人申請，依代號排列，共 '+pages.length+' 頁。'):'請填寫年月';
+  fit();return list}
+const RK='ot-rev-v1',loadRev=()=>{try{return JSON.parse(LS.getItem(RK)||'{}')||{}}catch(e){return {}}},saveRev=o=>{try{LS.setItem(RK,JSON.stringify(o))}catch(e){}};
+const revOf=(yr,mo,id)=>(loadRev()[yr+'-'+mo]||{})[id]||null;
+const dval=()=>({yr:$('#dYr').value.trim(),mo:$('#dMo').value.trim()});
+const wd2=(yr,d)=>{const m=/^(\d\d)\/(\d\d)$/.exec(d||'');return m&&yr?WD[new Date(+yr+1911,+m[1]-1,+m[2]).getDay()]:''};
+const STL={pend:'待審核',part:'部分通過',ok:'已通過',rej:'已退回',none:'未申請'};
+const sigOf=r=>[r.date,r.os,r.oe,r.rs,r.re,r.type,r.norm,r.front,r.back,r.reason,r.tax].join('|');
+function rrOf(rev,id,r){const m=rev[id];if(!m)return null;if(m.st)return m;return m[sigOf(r)]||null}   // m.st：舊版「整個人」的審核紀錄
+function pStat(p,rev){let ok=0,rej=0;p.rows.forEach(r=>{const x=rrOf(rev,p.id,r);if(x){if(x.st==='rej')rej++;else ok++}});return rej?'rej':ok===p.rows.length?'ok':ok?'part':'pend'}
+function renderDet(){
+  syncUsers();const v=dval(),app=aggregate(v.yr,v.mo),by={},rev=loadRev()[v.yr+'-'+v.mo]||{},all=app.slice(),cnt={pend:0,part:0,ok:0,rej:0,none:0};
+  app.forEach(p=>by[p.id]=p);cfg.users.forEach(u=>{if(!by[u.id])all.push({id:u.id,name:u.name,rows:[],none:true})});
+  all.sort((a,b)=>String(a.id).localeCompare(String(b.id),'zh-Hant',{numeric:true}));
+  const sx=p=>p.none?'none':pStat(p,rev);all.forEach(p=>cnt[sx(p)]++);
+  $('#dInfo').textContent=v.yr&&v.mo?(v.yr+' 年 '+v.mo+' 月：全部 '+all.length+' 人，已申請 '+app.length+' 人（待審核 '+cnt.pend+'、部分通過 '+cnt.part+'、已通過 '+cnt.ok+'、已退回 '+cnt.rej+'），未申請 '+cnt.none+' 人。'):'請填寫年月';
+  const f=$('#dFilter').value,list=all.filter(p=>!f||sx(p)===f);
+  $('#dList').innerHTML=list.length?list.map(p=>{
+    if(p.none)return '<div class="dcard" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center"><span><b>'+esc(p.name)+'</b>'+(p.name===p.id?'':'（'+esc(p.id)+'）')+'<span class="mut"> 0 筆</span></span><span class="st none">未申請</span></div>';
+    const st=sx(p),idA=' data-id="'+esc(p.id)+'"';let done=0;
+    const ents=p.rows.map((x,i)=>{const rr=rrOf(rev,p.id,x),es=rr?(rr.st==='rej'?'rej':'ok'):'pend',k=idA+' data-i="'+i+'"';if(rr)done++;
+      const h=[x.norm&&'正常 '+x.norm,x.front&&'前2時 '+x.front,x.back&&'後2時 '+x.back].filter(Boolean).join('、');
+      return '<div class="ent2 '+es+'"><div class="hd"><span><b>'+esc(x.date)+'（'+wd2(v.yr,x.date)+'）</b> '+esc(x.os)+'–'+esc(x.oe)+'　'+(x.rs?'休息 '+esc(x.rs)+'–'+esc(x.re):'無休息')+'</span><span class="st '+es+'">'+STL[es]+'</span></div>'+
+        '<div class="mut">'+esc(x.type)+' '+esc(TYPES[x.type]||'')+(h?'・'+esc(h):'')+'・'+(x.tax==='in'?'應稅':'免稅')+'</div><div>'+esc(x.reason)+'</div>'+
+        (rr?'<div class="mut">'+esc(rr.by)+' 於 '+esc(rr.at)+(es==='rej'&&rr.note?'・退回原因：'+esc(rr.note):'')+'</div>':'')+
+        '<div class="row">'+(es==='pend'?'<button class="btn sm p" data-rv="ok"'+k+'>通過</button><button class="btn sm d" data-rv="rej"'+k+'>退回</button>':'<button class="btn sm" data-rv="un"'+k+'>重新審核</button>')+
+        '<button class="btn sm" data-act="edit"'+k+'>修改</button><button class="btn sm d" data-act="del"'+k+'>刪除</button></div></div>'}).join('');
+    return '<details class="dcard"'+(st==='ok'?'':' open')+'><summary><span><b>'+esc(p.name)+'</b>'+(p.name===p.id?'':'（'+esc(p.id)+'）')+'<span class="mut"> 已審核 '+done+' / '+p.rows.length+' 筆</span></span><span class="st '+st+'">'+STL[st]+'</span></summary><div class="dbody">'+ents+
+      (done<p.rows.length?'<div class="acts" style="margin-top:10px"><button class="btn" data-rv="allok"'+idA+'>這個人剩下的全部通過</button></div>':'')+'</div></details>'}).join(''):'<div class="empty">'+(all.length?'沒有符合的資料':'還沒有任何人')+'</div>';
+}
+function openDet(){if(!$('#dYr').value){$('#dYr').value=S.h.yr;$('#dMo').value=S.h.mo}renderDet();view('det')}
+const nowTxt=()=>{const n=new Date();return (n.getMonth()+1)+'/'+n.getDate()+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')};
+function setRowRev(p,sigs,st,note){const v=dval(),all=loadRev(),k=v.yr+'-'+v.mo,mm=all[k]=all[k]||{};let m=mm[p.id]||{};
+  if(m.st){const L=m;m={};p.rows.forEach(r=>{m[sigOf(r)]=L})}
+  sigs.forEach(g=>{if(st)m[g]={st,by:(USER&&USER.name)||(USER&&USER.id)||'',at:nowTxt(),note:note||''};else delete m[g]});
+  if(Object.keys(m).length)mm[p.id]=m;else delete mm[p.id];saveRev(all)}
+function saveRows(p,yr,mo,rows){
+  if(p.src==='本機'){try{const d=JSON.parse(LS.getItem(p.key));d.rows=rows;LS.setItem(p.key,JSON.stringify(d))}catch(e){return false}}
+  else{const all=loadSum(),k=yr+'-'+mo;if(all[k]&&all[k][p.id])all[k][p.id].rows=rows;saveSum(all)}
+  if(USER&&p.key===curKey()){S.rows=rows.slice();refresh()}
+  const rv=loadRev(),m=rv[yr+'-'+mo];if(m&&m[p.id]&&m[p.id].st){delete m[p.id];saveRev(rv)}   // 舊版整個人的審核紀錄，資料有變動就作廢；逐筆紀錄會因內容改變自動失效
+  return true}
+const findP=id=>{const v=dval();return {v,p:aggregate(v.yr,v.mo).find(x=>x.id===id)}};
+async function delRow(id,i){const {v,p}=findP(id);if(!p||!await dlg('刪除 '+p.name+' 的 '+p.rows[i].date+' 這一筆加班？'))return;
+  saveRows(p,v.yr,v.mo,p.rows.filter((_,k)=>k!==i));$('#eBg').classList.remove('on');renderDet();toast('已刪除')}
+let eCtx=null;
+function openEdit(id,i){const {v,p}=findP(id);if(!p)return;const r=p.rows[i];eCtx={id,i};
+  $('#eWho').textContent=p.name+(p.name===p.id?'':'（'+p.id+'）');
+  [['eDate','date'],['eOs','os'],['eOe','oe'],['eRs','rs'],['eRe','re'],['eNorm','norm'],['eFront','front'],['eBack','back'],['eReason','reason']].forEach(a=>$('#'+a[0]).value=r[a[1]]||'');
+  $('#eType').value=r.type||'A';$('#eTax').value=r.tax==='in'?'in':'ex';$('#eErr').textContent='';$('#eBg').classList.add('on');$('#eBg .sheet').scrollTop=0}
+$('#eX').onclick=()=>$('#eBg').classList.remove('on');$('#eBg').onclick=e=>{if(e.target.id==='eBg')$('#eBg').classList.remove('on')};
+$('#eDel').onclick=()=>{if(eCtx)delRow(eCtx.id,eCtx.i)};
+$('#eSave').onclick=()=>{if(!eCtx)return;const {v,p}=findP(eCtx.id);if(!p)return;const g=k=>$('#'+k).value.trim(),err=m=>{$('#eErr').textContent=m};
+  const dg=g('eDate').replace(/\D/g,'');let mm='',dd='';if(dg.length===3||dg.length===4){mm=dg.slice(0,-2).padStart(2,'0');dd=dg.slice(-2)}
+  const days=new Date(+v.yr+1911,+v.mo,0).getDate();
+  if(!mm||+mm!==+v.mo||+dd<1||+dd>days)return err('日期請填 '+String(v.mo).padStart(2,'0')+'/01 到 '+String(v.mo).padStart(2,'0')+'/'+days);
+  const date=mm+'/'+dd,type=g('eType'),os=g('eOs'),oe=g('eOe'),rs=g('eRs'),re=g('eRe'),reason=g('eReason');
+  if(!reason)return err('請填寫加班事由');if(!os||!oe)return err('請填加班起迄時間');if(!rs!==!re)return err('休息起迄請填完整，或兩個都留空');
+  const f={A:['front','back'],B:['norm'],C:['norm','front','back']}[type],val={norm:g('eNorm'),front:g('eFront'),back:g('eBack')};
+  if([val.norm,val.front,val.back].some(x=>x&&isNaN(+x)))return err('時數請填數字');if(!f.some(k=>num(val[k])>0))return err('請填寫此種類的時數');
+  const mine=netMin(os,oe,rs,re);if(!mine)return err('加班起迄時間不正確（起迄不能相同）');
+  const others=p.rows.reduce((m,r,k)=>m+(k!==eCtx.i&&r.date===date?(netMin(r.os,r.oe,r.rs,r.re)||0):0),0);
+  if(others+mine>MAXDAY*60)return err(date+' 當日加班合計 '+fh(others+mine)+' 小時，超過每天上限 '+MAXDAY+' 小時');
+  const nr={date,os,oe,rs,re,reason,type,norm:f.includes('norm')?val.norm:'',front:f.includes('front')?val.front:'',back:f.includes('back')?val.back:'',tax:g('eTax')};
+  const rows=p.rows.slice();rows[eCtx.i]=nr;rows.sort((a,b)=>(a.date+(a.os||'')).localeCompare(b.date+(b.os||'')));
+  saveRows(p,v.yr,v.mo,rows);$('#eBg').classList.remove('on');renderDet();toast('已修改（這一筆的審核結果變回待審核）')};
+$('#dList').onclick=async e=>{const d=e.target.dataset;if(!d)return;
+  if(d.act==='edit')return openEdit(d.id,+d.i);if(d.act==='del')return delRow(d.id,+d.i);if(!d.rv)return;
+  const {v,p}=findP(d.id);if(!p)return;const rev=loadRev()[v.yr+'-'+v.mo]||{};
+  if(d.rv==='allok'){const sg=p.rows.filter(r=>!rrOf(rev,p.id,r)).map(sigOf);setRowRev(p,sg,'ok');renderDet();return toast('已通過 '+sg.length+' 筆')}
+  const sig=sigOf(p.rows[+d.i]);
+  if(d.rv==='ok'){setRowRev(p,[sig],'ok');renderDet();toast('這一筆已通過')}
+  else if(d.rv==='rej'){const n=await dlg('請輸入退回原因',{input:1});if(n===null)return;if(!n.trim())return toast('請填寫退回原因');setRowRev(p,[sig],'rej',n.trim());renderDet();toast('這一筆已退回')}
+  else if(d.rv==='un'){setRowRev(p,[sig],null);renderDet();toast('已改回待審核')}};
+$('#dAll').onclick=()=>{const v=dval(),rev=loadRev()[v.yr+'-'+v.mo]||{};let n=0;
+  aggregate(v.yr,v.mo).forEach(p=>{const sg=p.rows.filter(r=>!rrOf(rev,p.id,r)).map(sigOf);if(sg.length){setRowRev(p,sg,'ok');n+=sg.length}});
+  if(!n)return toast('沒有待審核的明細');renderDet();toast('已通過 '+n+' 筆')};
+$('#dFilter').addEventListener('change',renderDet);
+$('#dRef').onclick=()=>{renderDet();toast('已重新整理')};
+['dYr','dMo'].forEach(k=>$('#'+k).addEventListener('input',renderDet));
+function openSum(){if(!$('#sYr').value){$('#sYr').value=S.h.yr;$('#sMo').value=S.h.mo;$('#sDept').value=S.h.unit;$('#sCode').value=S.h.ucode}renderSum();view('sum')}
+document.addEventListener('click',e=>{const g=e.target.dataset&&e.target.dataset.go;if(!g)return;if(g==='admin'){drawAdmin();view('admin')}else if(g==='sum')openSum();else openDet()});
+['sYr','sMo','sDept','sCode'].forEach(k=>$('#'+k).addEventListener('input',renderSum));$('#sOnlyOk').addEventListener('change',renderSum);$('#sRef').onclick=()=>{renderSum();toast('已重新整理')};
+$('#sPdf').onclick=()=>{const v=sval();toast('請在列印視窗的「目的地」選擇「另存為 PDF」');const o=document.title;document.title='加班費總表_'+v.yr+'年'+v.mo+'月';setTimeout(()=>{print();setTimeout(()=>document.title=o,500)},400)};
+
+function buildSumDocx(list,m){
+  const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main',R='http://schemas.openxmlformats.org/officeDocument/2006/relationships',X='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+  const F='<w:rFonts w:ascii="標楷體" w:hAnsi="標楷體" w:eastAsia="標楷體" w:cs="標楷體"/>';
+  const run=(t,o)=>{o=o||{};const z=o.sz||22;return '<w:r><w:rPr>'+F+(o.b?'<w:b/>':'')+(o.c?'<w:color w:val="'+o.c+'"/>':'')+(o.u?'<w:u w:val="single"/>':'')+'<w:sz w:val="'+z+'"/><w:szCs w:val="'+z+'"/></w:rPr><w:t xml:space="preserve">'+esc(t)+'</w:t></w:r>'};
+  const para=(r,o)=>{o=o||{};return '<w:p><w:pPr>'+(o.keep?'<w:keepNext/>':'')+'<w:spacing w:before="'+(o.before||0)+'" w:after="'+(o.after||0)+'"/><w:jc w:val="'+(o.jc||'left')+'"/></w:pPr>'+r+'</w:p>'};
+  const tc=(t,w,o)=>{o=o||{};return '<w:tc><w:tcPr><w:tcW w:w="'+w+'" w:type="dxa"/>'+(o.span?'<w:gridSpan w:val="'+o.span+'"/>':'')+(o.vm?'<w:vMerge'+(o.vm==='restart'?' w:val="restart"':'')+'/>':'')+'<w:vAlign w:val="center"/></w:tcPr>'+para(run(t,{sz:22}),{jc:'center',keep:o.keep})+'</w:tc>'};
+  const tr=(c,h,hd)=>'<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="'+h+'" w:hRule="atLeast"/>'+(hd?'<w:tblHeader/>':'')+'</w:trPr>'+c+'</w:tr>';
+  const f=n=>n?String(+n.toFixed(2)):'',g=[1260,1390,1000,880,880,1760,1140,900,990];
+  let rows=tr(tc('CODE',g[0],{vm:'restart'})+tc('員工姓名',g[1],{vm:'restart'})+tc('平日加班',g[2]+g[3]+g[4],{span:3})+tc('緊急來院加班',g[5])+tc('休息日加班',g[6]+g[7]+g[8],{span:3}),400,1)+
+    tr(tc('',g[0],{vm:'cont'})+tc('',g[1],{vm:'cont'})+tc('類別',g[2])+tc('前2hr',g[3])+tc('後2hr',g[4])+tc('正常時數',g[5])+tc('正常時數',g[6])+tc('前2hr',g[7])+tc('後2hr',g[8]),400,1);
+  if(!list.length)rows+=tr(tc('尚無申請資料',10200,{span:9}),420);
+  list.forEach(p=>{const t=calc(p.rows),k={keep:1};
+    rows+=tr(tc(p.id,g[0],{vm:'restart',keep:1})+tc(p.name,g[1],{vm:'restart',keep:1})+tc('免稅(hr)',g[2],k)+tc(f(t.ex.Af),g[3],k)+tc(f(t.ex.Ab),g[4],k)+tc(f(t.ex.Bn),g[5],k)+tc(f(t.C.n),g[6],{vm:'restart',keep:1})+tc(f(t.C.f),g[7],{vm:'restart',keep:1})+tc(f(t.C.b),g[8],{vm:'restart',keep:1}),420)+
+      tr(tc('',g[0],{vm:'cont'})+tc('',g[1],{vm:'cont'})+tc('應稅(hr)',g[2])+tc(f(t.in.Af),g[3])+tc(f(t.in.Ab),g[4])+tc(f(t.in.Bn),g[5])+tc('',g[6],{vm:'cont'})+tc('',g[7],{vm:'cont'})+tc('',g[8],{vm:'cont'}),420)});
+  const bd='<w:tblBorders>'+['top','left','bottom','right','insideH','insideV'].map(k=>'<w:'+k+' w:val="single" w:sz="4" w:space="0" w:color="000000"/>').join('')+'</w:tblBorders>';
+  const tbl='<w:tbl><w:tblPr><w:tblW w:w="10200" w:type="dxa"/>'+bd+'<w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="40" w:type="dxa"/><w:right w:w="40" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>'+g.map(x=>'<w:gridCol w:w="'+x+'"/>').join('')+'</w:tblGrid>'+rows+'</w:tbl>';
+  const Z={sz:24};let b=para(run('彰化基督教醫療財團法人員林基督教醫院',{b:1,sz:32}),{jc:'center',after:160});
+  b+=para(run(' '+m.yr+' ',{u:1,sz:24})+run('年 ',Z)+run(' '+m.mo+' ',{u:1,sz:24})+run('月 加班費用計算彙總表',Z)+run('(請附加班事由申請單)',{b:1,sz:24})+run('　　部門：',Z)+run(' '+m.dept+' ',{u:1,sz:24}),{after:80});
+  b+=para(run('■ 注意：本月加班費需完成事前簽呈核定(詳細規則請參閱規章N9)',{c:'FF0000',sz:24})+run('　代號：',Z)+run(' '+m.code+' ',{u:1,sz:24}),{after:100});
+  b+=tbl+para(run('說明：1. 員工代號務必正確。'),{before:120})+para(run('　　　2. 平日、休息日、緊急加班免稅加班時數(包括前2hr後2hr)合計男生46小時、女生46小時。'))+para(run('　　　3. 假日加班時數屬免稅'))+
+    para(run('行政副院長：＿＿＿＿＿　行政處：＿＿＿＿＿　單位主管：＿＿＿＿＿　製表人：',Z)+run(m.maker||'',Z),{before:360});
+  const sect='<w:sectPr><w:footerReference w:type="default" r:id="rId3"/><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="851" w:right="851" w:bottom="1000" w:left="851" w:header="567" w:footer="400" w:gutter="0"/></w:sectPr>';
+  const doc=X+'<w:document xmlns:w="'+W+'" xmlns:r="'+R+'"><w:body>'+b+sect+'</w:body></w:document>';
+  const ft=F+'<w:sz w:val="16"/>',footer=X+'<w:ftr xmlns:w="'+W+'"><w:p><w:pPr><w:tabs><w:tab w:val="center" w:pos="5102"/></w:tabs><w:spacing w:before="0" w:after="0"/></w:pPr><w:r><w:rPr>'+ft+'</w:rPr><w:t>53003-01-014</w:t></w:r><w:r><w:rPr>'+ft+'</w:rPr><w:tab/><w:t>2019/05</w:t></w:r></w:p></w:ftr>';
+  const styles=X+'<w:styles xmlns:w="'+W+'"><w:docDefaults><w:rPrDefault><w:rPr>'+F+'<w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-US" w:eastAsia="zh-TW"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>';
+  return zipStore([
+    {name:'[Content_Types].xml',data:X+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/footer1.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"/></Types>'},
+    {name:'_rels/.rels',data:X+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="'+R+'/officeDocument" Target="word/document.xml"/></Relationships>'},
+    {name:'word/_rels/document.xml.rels',data:X+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId2" Type="'+R+'/styles" Target="styles.xml"/><Relationship Id="rId3" Type="'+R+'/footer" Target="footer1.xml"/></Relationships>'},
+    {name:'word/document.xml',data:doc},{name:'word/styles.xml',data:styles},{name:'word/footer1.xml',data:footer}
+  ],'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+}
+$('#sWord').onclick=()=>{const v=sval(),list=renderSum();if(!list.length)return toast('這個月份沒有申請資料');
+  const a=document.createElement('a');a.href=URL.createObjectURL(buildSumDocx(list,{yr:v.yr,mo:v.mo,dept:$('#sDept').value,code:$('#sCode').value,maker:cfg.maker}));a.download='加班費總表_'+v.yr+'年'+v.mo+'月.docx';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);toast('已下載 Word 檔，請開啟後列印')};
+
+/* ---------- print / export ---------- */
+async function guard(){
+  const m=[];if(!S.h.name)m.push('尚未填寫員工姓名');if(!S.h.empid)m.push('尚未填寫員工代號');if(!S.rows.length)m.push('沒有任何加班明細');
+  return m.length?dlg(m.join('\n')+'\n\n仍要繼續嗎？'):true}
+const fileBase=()=>'加班申請單_'+S.h.yr+'年'+S.h.mo+'月'+(S.h.name?'_'+S.h.name:'');
+function doPrint(){const o=document.title;document.title=fileBase();print();setTimeout(()=>document.title=o,500)}
+$('#bPdf').onclick=async()=>{if(!await guard())return;toast('請在列印視窗的「目的地」選擇「另存為 PDF」');setTimeout(doPrint,400)};
+const exportWord=async()=>{if(!await guard())return;const a=document.createElement('a');a.href=URL.createObjectURL(buildDocx(Object.assign({},S.h,{maker:cfg.maker}),S.rows,MAXR));a.download=fileBase()+'.docx';
+  document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);toast('已下載 Word 檔，請開啟後列印')};
+$('#bPrint').onclick=exportWord;
+
+
+function syncUsers(){const s=(OT&&OT.staff)?OT.staff():{};cfg.users=Object.keys(s).map(id=>({id,name:s[id]}))}
+function hostUser(){const u=(OT&&OT.user)?OT.user():null;return u?{id:u.code,role:u.admin?'admin':'user',name:u.name}:null}
+function enterApp(u){
+  USER=u;syncUsers();loadS(u);
+  ['unit','ucode','name','empid'].forEach(k=>$('#h_'+k).value=S.h[k]);setSel($('#h_yr'),S.h.yr);$('#h_mo').value=S.h.mo;updGreet();
+  const lock=u.role==='user';$('#h_name').disabled=$('#h_empid').disabled=lock;
+  $('#whoTxt').textContent=(u.name&&u.name!==u.id?u.name+'（'+u.id+'）':u.id)+(lock?'':'・管理人');$('#tAdm').classList.toggle('hide',lock);
+  $('#login').classList.add('hide');document.body.classList.remove('out');refresh();view('fill');
+  if(u.role==='admin'&&new URLSearchParams(location.search).get('go')==='admin'){drawAdmin();view('admin')}
+}
+$('#logout').onclick=()=>{closeSheet();LS.flushAll();if(OT&&OT.back)OT.back()};
+LS.onChange=ch=>{if(!USER)return;
+  if(ch.indexOf(CK)>=0){try{mergeCfg(JSON.parse(LS.getItem(CK)||'null'));renderPaper();if(CUR==='admin')drawAdmin()}catch(e){}}
+  if(ch.indexOf(curKey())>=0&&CUR==='fill'&&!$('#bg').classList.contains('on')){monthData();renderList();renderPaper()}
+  if(CUR==='det')renderDet();else if(CUR==='sum')renderSum();else if(CUR==='fill')renderList()};
+addEventListener('visibilitychange',()=>{if(document.hidden)LS.flushAll()});addEventListener('pagehide',()=>LS.flushAll());
+const hu=hostUser();
+if(!hu){document.body.innerHTML='<div style="padding:40px 16px;text-align:center;font-size:16px">請從預約系統登入後，再進入「加班費申請」。</div>'}
+else{document.body.classList.add('out');LS.start(()=>{try{const r=LS.getItem(CK);if(r)mergeCfg(JSON.parse(r))}catch(e){}enterApp(hu)})}
+
+fit();
+})();
+</script></body></html>
