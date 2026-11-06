@@ -282,8 +282,8 @@ function formView(){
   <div class="card"><h2 class="req">你要預約/申請</h2><div class="cards"><button class="pick nn" onclick="openOT('form')">💰 加班費申請</button>${SHIFT[user.code]==="大夜班"?`<button class="pick nn" onclick="openNight()">🌙 大夜排班</button>${types}`:`${types}<button class="pick nn" onclick="openNight()">🌙 大夜排班</button>`}</div>${other}</div>
   ${sType&&!sk?calCard:""}
   ${sk?`<div class="card"><h2 class="req">你要預約/申請什麼時段？</h2>${sessBtns?`<div class="cards">${sessBtns}${sk==="edu"?`<button class="pick ${sSlot==="__custom"?"on":""}" onclick="pickSlot('__custom')">自訂日期與時間</button>`:""}</div>`:`<div class="mut">目前沒有開放預約的場次${sk==="edu"?"，可以選擇自訂日期與時間":""}。</div>${sk==="edu"?`<div class="cards" style="margin-top:8px"><button class="pick ${sSlot==="__custom"?"on":""}" onclick="pickSlot('__custom')">自訂日期與時間</button></div>`:""}`}${sk==="edu"&&sSlot==="__custom"?`<div class="row" style="margin-top:12px;align-items:center"><span>從</span><input type="time" id="t1" value="${esc(sT1)}" oninput="sT1=this.value"><span>到</span><input type="time" id="t2" value="${esc(sT2)}" oninput="sT2=this.value"></div>`:""}</div>${sk==="edu"&&sSlot==="__custom"?calCard:""}`:""}
-  <div class="card"><h2>備註</h2><input type="text" id="note" value="${esc(sNote)}" oninput="sNote=this.value" placeholder="選填"></div>
-  <button style="font-size:17px;padding:12px 28px" onclick="submitB()">${editId?"更新預約":"送出預約"}</button>${editId?` <button class="sec" style="font-size:17px;padding:12px 20px" onclick="cancelEdit()">取消修改</button>`:""}`}
+  ${sType||editId?`<div class="card"><h2>備註</h2><input type="text" id="note" value="${esc(sNote)}" oninput="sNote=this.value" placeholder="選填"></div>
+  <button style="font-size:17px;padding:12px 28px" onclick="submitB()">${editId?"更新預約":"送出預約"}</button>`:""}${editId?` <button class="sec" style="font-size:17px;padding:12px 20px" onclick="cancelEdit()">取消修改</button>`:""}`}
 async function submitB(){
   const date=sDate,note=sNote.trim();
   let t=sType==="__other"?"其他："+(sOther.trim()||"未填"):sType,sl=sSlot==="__custom"?(sT1&&sT2?sT1+"-"+sT2:""):sSlot;
