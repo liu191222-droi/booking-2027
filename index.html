@@ -147,7 +147,7 @@ function normCfg(d){d=d||{};const o=(d.options||DEF.options).slice();if(!d.eduSl
   return{options:dateItems.concat(slotItems.map(x=>x.n)),dateItems,slotItems,slots:sl,eduSlots:es,blocked:d.blocked||[],monthMode:d.monthMode||{}}}
 const slotKind=t=>{const it=cfg.slotItems.find(x=>x.n===t);return it?(it.c?"edu":"ampm"):""};
 const slotsOf=t=>{const it=cfg.slotItems.find(x=>x.n===t);return it?it.s:[]};
-let cfg=normCfg(null),bookings=[],pws={},user=null,view="login",month=new Date().getMonth(),msg="",store=null,local=false,adminTab="book",editId=null,fill=null,reset=false,sEdit=null;
+let otDocs=[],myF=1,cfg=normCfg(null),bookings=[],pws={},user=null,view="login",month=new Date().getMonth(),msg="",store=null,local=false,adminTab="book",editId=null,fill=null,reset=false,sEdit=null;
 
 function lsGet(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -161,6 +161,7 @@ async function init(){
     db.doc("config/staff").onSnapshot(s=>{if(s.exists&&Array.isArray(s.data().list))setStaff(s.data().list);staffReady=true;render()},()=>{});
     db.doc("config/main").onSnapshot(s=>{if(s.exists){const d=s.data();cfg=normCfg(d)}render()},()=>{});
     db.collection("bookings").onSnapshot(s=>{bookings=s.docs.map(d=>({...d.data(),id:d.id}));render()},()=>{});
+    db.collection("ot").onSnapshot(s=>{otDocs=s.docs.map(d=>d.data());render()},()=>{});
     db.collection("pw").onSnapshot(s=>{pws={};s.docs.forEach(d=>pws[d.id]=d.data().h);render()},()=>{});
   }else{
     local=true;cfg=normCfg(lsGet("cfg2027",null));bookings=lsGet("bk2027",[]);pws=lsGet("pw2027",{});const sl0=lsGet("staff2027",null);if(sl0)setStaff(sl0);staffReady=true;
@@ -208,6 +209,19 @@ async function login(){
 }
 function logout(){user=null;editId=null;fill=null;view="login";render()}
 
+/* 我的加班費申請：讀取加班頁存在 ot 集合的資料（ot-form-v1:員編@民國年-月） */
+const OT_T={A:"平日加班",B:"緊急來院加班",C:"休息日出勤"};
+function myOT(code){
+  const pre="ot-form-v1:"+code+"@",out=[];let rev={};
+  const rd=otDocs.find(x=>x&&x.k==="ot-rev-v1");try{rev=rd?JSON.parse(rd.v)||{}:{}}catch(e){}
+  otDocs.forEach(x=>{if(!x||typeof x.k!=="string"||x.k.indexOf(pre)!==0)return;
+    const m=x.k.slice(pre.length).match(/^(\d+)-(\d+)$/);if(!m)return;let d;try{d=JSON.parse(x.v)}catch(e){return}
+    const yr=+m[1]+1911,rv=(rev[m[1]+"-"+m[2]]||{})[(d&&d.h&&d.h.empid)||code];
+    ((d&&d.rows)||[]).forEach(r=>{const dm=r&&String(r.date||"").match(/^(\d\d)\/(\d\d)$/);if(!dm)return;
+      const sig=[r.date,r.os,r.oe,r.rs,r.re,r.type,r.norm,r.front,r.back,r.reason,r.tax].join("|"),st=rv?(rv.st?rv:rv[sig]):null;
+      out.push({ot:1,date:yr+"-"+dm[1]+"-"+dm[2],time:(r.os||"")+"-"+(r.oe||""),type:r.type,reason:r.reason||"",st:st&&st.st,note:st&&st.note})})});
+  return out}
+
 /* employee */
 let sType="",sOther="",sDate="",sSlot="",sNote="",sT1="",sT2="",sSess="",calM=0,okB=null;
 const WD=["日","一","二","三","四","五","六"];
@@ -238,7 +252,11 @@ function formView(){
     cal+=`<button class="d ${sDate===ds?"on":""} ${off?"off":""} ${off==="locked"?"lk":""} ${(first+d-1)%7===6?"sat":(first+d-1)%7===0?"sun":""}" ${off&&off!=="locked"?"disabled":""} onclick="pickDate('${ds}')">${d}${tag?`<small>${tag}</small>`:""}</button>`}
   const sk=slotKind(sType),sit=cfg.slotItems.find(x=>x.n===sType);
   const sessBtns=sit?sessSort(sit.ss).filter(x=>x.d>=todayS()).map(x=>{const off=dayOff(x.d),k=x.d+"|"+x.t;return `<button class="pick ${sSess===k?"on":""}" ${off&&sSess!==k?"disabled":""} data-k="${esc(k)}" onclick="pickSess(this.dataset.k)"><b>${esc(dshort(x.d))}</b><small class="mut" style="display:block">${esc(x.t)} · 目前 ${sessCount(sit.n,x.d,x.t,editId)} 人${off?" · 已停止":""}</small></button>`}).join(""):"";
-  const cards=mine.map(b=>`<div class="bk"><div><b>${esc(dstr(b.date))}</b><div>${b.type==="生日體檢"?"🎂 ":""}${esc(b.type)}${b.slot?" · "+esc(b.slot):""}</div>${b.note?`<div class="mut">${esc(b.note)}</div>`:""}</div><div class="row"><button class="sec" style="padding:6px 14px" onclick="startEdit('${b.id}')">修改</button><button class="del" style="padding:6px 14px" onclick="cancelMine('${b.id}')">取消</button></div></div>`).join("")||`<div class="mut">目前沒有預約</div>`;
+  const bkCard=b=>`<div class="bk"><div><b>${esc(dstr(b.date))}</b><div>${b.type==="生日體檢"?"🎂 ":""}${esc(b.type)}${b.slot?" · "+esc(b.slot):""}</div>${b.note?`<div class="mut">${esc(b.note)}</div>`:""}</div><div class="row"><button class="sec" style="padding:6px 14px" onclick="startEdit('${b.id}')">修改</button><button class="del" style="padding:6px 14px" onclick="cancelMine('${b.id}')">取消</button></div></div>`;
+  const otCard=o=>`<div class="bk"><div><b>${esc(dstr(o.date))}</b><div>💰 加班費・${esc(OT_T[o.type]||o.type||"")} · ${esc(o.time)}</div>${o.reason?`<div class="mut">${esc(o.reason)}</div>`:""}${o.st?`<div class="mut" style="color:${o.st==="rej"?"var(--dn)":"#1f7a4d"}">${o.st==="rej"?"已退回"+(o.note?"："+esc(o.note):""):"已通過"}</div>`:""}</div><div class="row"><button class="sec" style="padding:6px 14px" onclick="openOT('form')">查看/修改</button></div></div>`;
+  const myList=(myF===1?mine:myF===2?myOT(user.code):mine.concat(myOT(user.code))).slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const cards=myList.map(x=>x.ot?otCard(x):bkCard(x)).join("")||`<div class="mut">${myF===2?"目前沒有加班費申請":myF===3?"目前沒有預約或申請":"目前沒有預約"}</div>`;
+  const myFil=[[1,"預約（不含加班費）"],[2,"加班費申請"],[3,"全部"]].map(([n,t])=>`<label class="opt" style="padding:2px 0;margin-right:14px;display:inline-flex"><input type="checkbox" ${myF===n?"checked":""} onclick="myF=${n};render()"> ${t}</label>`).join("");
   const calCard=`<div class="card"><h2 class="req">你要預約/申請那一天</h2>
     <div class="row" style="justify-content:space-between;align-items:center"><button class="sec" onclick="calNav(-1)" ${calM===0?"disabled":""}>‹</button><select onchange="calM=+this.value;render()">${Array.from({length:12},(_,i)=>`<option value="${i}" ${i===calM?"selected":""}>${YEAR}年${i+1}月</option>`).join("")}</select><button class="sec" onclick="calNav(1)" ${calM===11?"disabled":""}>›</button></div>
     <div class="mg">${Array.from({length:12},(_,i)=>`<button class="${i===calM?"on":""}${monthLocked(`${YEAR}-${pad(i+1)}-01`)?" lk":""}" onclick="calM=${i};render()">${i+1}月</button>`).join("")}</div>
@@ -251,7 +269,7 @@ function formView(){
   ${user.def?`<div class="msg">你目前使用預設密碼，建議先<a href="#" onclick="go('pw');return false">修改密碼</a>。</div>`:""}
   ${okB?`<div class="card" style="border:2px solid var(--ac2)"><h2>✅ ${okB.upd?"預約已更新":"預約成功"}</h2><div>項目：${okB.type==="生日體檢"?"🎂 ":""}${esc(okB.type)}<br>日期：${esc(dstr(okB.date))}${okB.slot?`<br>時段：${esc(okB.slot)}`:""}</div><br><button class="sec" onclick="okB=null;render()">關閉</button></div>`:""}
   ${editId?`<div class="msg">正在修改預約，改完請按「更新預約」。</div>`:""}
-  <div class="card"><h2>我的預約情形</h2>${cards}</div>
+  <div class="card"><h2>我的預約/申請情形</h2><div style="margin-bottom:8px">${myFil}</div>${cards}</div>
   <div class="card"><h2 class="req">你要預約/申請</h2><div class="cards"><button class="pick nn" onclick="openOT('form')">💰 加班費申請</button>${SHIFT[user.code]==="大夜班"?`<button class="pick nn" onclick="openNight()">🌙 大夜排班</button>${types}`:`${types}<button class="pick nn" onclick="openNight()">🌙 大夜排班</button>`}</div>${other}</div>
   ${sType&&!sk?calCard:""}
   ${sk?`<div class="card"><h2 class="req">你要預約/申請什麼時段？</h2>${sessBtns?`<div class="cards">${sessBtns}${sk==="edu"?`<button class="pick ${sSlot==="__custom"?"on":""}" onclick="pickSlot('__custom')">自訂日期與時間</button>`:""}</div>`:`<div class="mut">目前沒有開放預約的場次${sk==="edu"?"，可以選擇自訂日期與時間":""}。</div>${sk==="edu"?`<div class="cards" style="margin-top:8px"><button class="pick ${sSlot==="__custom"?"on":""}" onclick="pickSlot('__custom')">自訂日期與時間</button></div>`:""}`}${sk==="edu"&&sSlot==="__custom"?`<div class="row" style="margin-top:12px;align-items:center"><span>從</span><input type="time" id="t1" value="${esc(sT1)}" oninput="sT1=this.value"><span>到</span><input type="time" id="t2" value="${esc(sT2)}" oninput="sT2=this.value"></div>`:""}</div>${sk==="edu"&&sSlot==="__custom"?calCard:""}`:""}
