@@ -240,9 +240,11 @@ const LS=(function(){
   const cache={},timers={},inflight={};
   const did=k=>'o'+k.replace(/[^A-Za-z0-9]/g,c=>'_'+c.charCodeAt(0).toString(16));
   const col=()=>db.collection('ot'),busy=k=>(k in timers)||inflight[k]>0;
+  // Firestore 在主頁面載入，只接受主頁面建立的物件；iframe 自己的 {} 會被判定為「custom Object」而拒絕寫入
+  const rec=(k,v)=>{const W=(OT&&window.parent)||window,o=new W.Object();o.k=k;o.v=v;return o};
   function flush(k){if(k in timers){clearTimeout(timers[k]);delete timers[k]}
     const v=cache[k];inflight[k]=(inflight[k]||0)+1;let p;
-    try{p=v===undefined?col().doc(did(k)).delete():col().doc(did(k)).set({k:k,v:v})}catch(e){p=Promise.reject(e)}
+    try{p=v===undefined?col().doc(did(k)).delete():col().doc(did(k)).set(rec(k,v))}catch(e){p=Promise.reject(e)}
     Promise.resolve(p).then(null,()=>{}).then(()=>{inflight[k]--})}
   const api={
     getItem:k=>k in cache?cache[k]:null,
