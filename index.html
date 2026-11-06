@@ -223,6 +223,7 @@ function myOT(code){
   return out}
 // 刪除一筆加班明細：改寫 ot 集合裡該月的文件（文件代號規則同 overtime.html 的 did()）
 async function delOT(i){const o=otShown[i];if(!o||!store||!store.db)return;
+  if(o.st==="ok"&&!user.admin)return notice("這筆加班費申請已審核通過，無法自行刪除，請洽管理者處理。");
   if(!await ask("確定刪除 "+dstr(o.date)+" "+o.time+" 這筆加班費申請？"+(o.st==="ok"?"（⚠ 這筆已審核通過）":"")))return;
   const x=otDocs.find(d=>d&&d.k===o.k);let d;try{d=JSON.parse(x.v)}catch(e){return flash("刪除失敗")}
   const sigOf=r=>[r.date,r.os,r.oe,r.rs,r.re,r.type,r.norm,r.front,r.back,r.reason,r.tax].join("|"),j=(d.rows||[]).findIndex(r=>sigOf(r)===o.sig);
@@ -261,7 +262,7 @@ function formView(){
   const sk=slotKind(sType),sit=cfg.slotItems.find(x=>x.n===sType);
   const sessBtns=sit?sessSort(sit.ss).filter(x=>x.d>=todayS()).map(x=>{const off=dayOff(x.d),k=x.d+"|"+x.t;return `<button class="pick ${sSess===k?"on":""}" ${off&&sSess!==k?"disabled":""} data-k="${esc(k)}" onclick="pickSess(this.dataset.k)"><b>${esc(dshort(x.d))}</b><small class="mut" style="display:block">${esc(x.t)} · 目前 ${sessCount(sit.n,x.d,x.t,editId)} 人${off?" · 已停止":""}</small></button>`}).join(""):"";
   const bkCard=b=>`<div class="bk"><div><b>${esc(dstr(b.date))}</b><div>${b.type==="生日體檢"?"🎂 ":""}${esc(b.type)}${b.slot?" · "+esc(b.slot):""}</div>${b.note?`<div class="mut">${esc(b.note)}</div>`:""}</div><div class="row"><button class="sec" style="padding:6px 14px" onclick="startEdit('${b.id}')">修改</button><button class="del" style="padding:6px 14px" onclick="cancelMine('${b.id}')">取消</button></div></div>`;
-  const otCard=o=>`<div class="bk"><div><b>${esc(dstr(o.date))}</b><div>💰 加班費・${esc(OT_T[o.type]||o.type||"")} · ${esc(o.time)}</div>${o.reason?`<div class="mut">${esc(o.reason)}</div>`:""}<div class="mut" style="font-weight:600;color:${o.st==="rej"?"var(--dn)":o.st?"#1f7a4d":"#b4531a"}">審核狀況：${o.st==="rej"?"❌ 已退回"+(o.note?"："+esc(o.note):""):o.st?"✅ 已通過":"⏳ 待審核"}</div></div><div class="row"><button class="sec" style="padding:6px 14px" onclick="openOT('form')">查看/修改</button><button class="del" style="padding:6px 14px" onclick="delOT(${otShown.indexOf(o)})">刪除</button></div></div>`;
+  const otCard=o=>`<div class="bk"><div><b>${esc(dstr(o.date))}</b><div>💰 加班費・${esc(OT_T[o.type]||o.type||"")} · ${esc(o.time)}</div>${o.reason?`<div class="mut">${esc(o.reason)}</div>`:""}<div class="mut" style="font-weight:600;color:${o.st==="rej"?"var(--dn)":o.st?"#1f7a4d":"#b4531a"}">審核狀況：${o.st==="rej"?"❌ 已退回"+(o.note?"："+esc(o.note):""):o.st?"✅ 已通過":"⏳ 待審核"}</div></div><div class="row"><button class="sec" style="padding:6px 14px" onclick="openOT('form')">查看/修改</button>${o.st==="ok"&&!user.admin?`<span class="mut" style="font-size:13px;align-self:center">已通過，如需刪除請洽管理者</span>`:`<button class="del" style="padding:6px 14px" onclick="delOT(${otShown.indexOf(o)})">刪除</button>`}</div></div>`;
   otShown=myF===1?[]:myOT(user.code);const myList=(myF===1?mine:myF===2?otShown:mine.concat(otShown)).slice().sort((a,b)=>a.date.localeCompare(b.date));
   const cards=myList.map(x=>x.ot?otCard(x):bkCard(x)).join("")||`<div class="mut">${myF===2?"目前沒有加班費申請":myF===3?"目前沒有預約或申請":"目前沒有預約"}</div>`;
   const myFil=[[1,"預約（不含加班費）"],[2,"加班費申請"],[3,"全部"]].map(([n,t])=>`<label class="opt" style="padding:2px 0;margin-right:14px;display:inline-flex"><input type="checkbox" ${myF===n?"checked":""} onclick="myF=${n};render()"> ${t}</label>`).join("");

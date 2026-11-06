@@ -515,7 +515,9 @@ $('.sheet').addEventListener('input',dayHint);$('.sheet').addEventListener('chan
 $('#shX').onclick=closeSheet;$('#bg').onclick=e=>{if(e.target.id==='bg')closeSheet()};
 $('#fab').onclick=()=>{if(S.rows.length>=MAXR)return toast('表單一頁最多 '+MAXR+' 筆');openSheet(-1)};
 $('#list').onclick=e=>{const r=e.target.closest('.ent');if(r)openSheet(+r.dataset.i)};
-$('#del').onclick=async()=>{if(await dlg('刪除這一筆加班？')){S.rows.splice(editing,1);refresh();closeSheet()}};
+$('#del').onclick=async()=>{const r0=S.rows[editing],rr0=r0&&rrOf(loadRev()[S.h.yr+'-'+S.h.mo]||{},S.h.empid||(USER&&USER.id),r0);
+  if(rr0&&rr0.st!=='rej'&&USER&&USER.role!=='admin')return toast('這筆已審核通過，無法自行刪除，請洽管理者處理');
+  if(await dlg('刪除這一筆加班？')){S.rows.splice(editing,1);refresh();closeSheet()}};
 
 function commit(again){
   ['os','oe','rs','re'].forEach(k=>E[k]=$('#'+k).value);E.reason=$('#reason').value.trim();E.nr=$('#nr').checked;
