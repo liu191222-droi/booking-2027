@@ -115,7 +115,7 @@ input[type=time]{font:inherit;padding:10px;border:1px solid var(--bd);border-rad
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-firestore-compat.js"></script>
 <script>
 /* ===== Firebase 設定：把 Firebase 主控台給的 firebaseConfig 貼在這裡 ===== */
-const FIREBASE_CONFIG={apiKey:"",authDomain:"",projectId:"",storageBucket:"",messagingSenderId:"",appId:""};
+const FIREBASE_CONFIG={apiKey:"AIzaSyAuDN-F2kzudAYDw7KLRC7pGSxA3gUJ0co",authDomain:"booking-2027-9ee88.firebaseapp.com",projectId:"booking-2027-9ee88",storageBucket:"booking-2027-9ee88.firebasestorage.app",messagingSenderId:"162378879847",appId:"1:162378879847:web:849f419c60240fe94495c2"};
 /* 以 Firebase 取代 Claude 的執行環境（資料庫、下載） */
 window.claude={use:async n=>{
   if(n==="db"){if(!FIREBASE_CONFIG.projectId||!window.firebase)return null;
