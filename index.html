@@ -425,7 +425,7 @@ let otFrom="form",otGo="";
 function openOT(from,adm){otFrom=from;otGo=adm?"admin":"";view="ot";render();window.scrollTo(0,0)}
 function otBack(){view=otFrom;render();window.scrollTo(0,0)}
 function otView(){return `<iframe id="otf" src="overtime.html${otGo?"?go="+otGo:""}" style="width:100%;height:calc(100vh - 110px);min-height:560px;border:0;border-radius:12px;background:#fff"></iframe>`}
-window.OTHOST={user:()=>user,staff:()=>STAFF,db:()=>store&&store.db,call:()=>user?callName(user):"",back:otBack};
+window.OTHOST={user:()=>user,staff:()=>STAFF,db:()=>store&&store.db,call:()=>user?callName(user):"",back:otBack,logout:()=>{logout();window.scrollTo(0,0)}};
 function render(){if(view==="ot"&&document.getElementById("otf"))return;render0();$("app").classList.toggle("wide",view==="ot");if(view==="form"){applyFill();updSlot()}}
 async function addBlock(){const v=$("bd").value;if(!v)return;if(!v.startsWith(YEAR+"-"))return flash("日期必須在 "+YEAR+" 年內");const b=cfg.blocked||[];if(b.includes(v))return flash("已設定過");const c={...cfg,blocked:[...b,v].sort()};try{await store.saveCfg(c);cfg=c;render()}catch(e){flash("儲存失敗")}}
 async function rmBlock(d){const c={...cfg,blocked:(cfg.blocked||[]).filter(x=>x!==d)};try{await store.saveCfg(c);cfg=c;render()}catch(e){flash("儲存失敗")}}

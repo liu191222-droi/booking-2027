@@ -118,7 +118,7 @@ table.stat{width:100%;margin:0;border-collapse:collapse;table-layout:fixed;font-
  <label class="l" for="lpw">密碼</label><input class="in" id="lpw" type="password" autocomplete="current-password">
  <div class="err" id="lerr"></div><button class="btn p" type="button" id="lbtn" style="width:100%">登入</button></div></div>
 <div class="top"><div class="ttl2"><h1>加班事由申請單</h1><span class="greet" id="greet"></span></div>
- <div class="tabs"><button id="tFill" class="on">填寫</button><button id="tPrev">預覽・輸出</button><button id="tAdm" class="hide">後台管理</button></div><button class="btn" id="logout">返回預約系統</button></div>
+ <div class="tabs"><button id="tFill" class="on">填寫</button><button id="tPrev">預覽・輸出</button><button id="tAdm" class="hide">後台管理</button></div><button class="btn" id="logout">返回預約系統</button><button class="btn" id="otOut">登出</button></div>
 
 <div class="wrap" id="vFill">
  <div class="card"><div class="who"><span id="whoTxt"></span></div><h2>基本資料</h2>
@@ -768,6 +768,7 @@ function enterApp(u){
   if(u.role==='admin'&&new URLSearchParams(location.search).get('go')==='admin'){drawAdmin();view('admin')}
 }
 $('#logout').onclick=()=>{closeSheet();LS.flushAll();if(OT&&OT.back)OT.back()};
+$('#otOut').onclick=()=>{closeSheet();LS.flushAll();if(OT&&OT.logout)OT.logout();else if(OT&&OT.back)OT.back()};
 LS.onChange=ch=>{if(!USER)return;
   if(ch.indexOf(CK)>=0){try{mergeCfg(JSON.parse(LS.getItem(CK)||'null'));renderPaper();if(CUR==='admin')drawAdmin()}catch(e){}}
   if(ch.indexOf(curKey())>=0&&CUR==='fill'&&!$('#bg').classList.contains('on')){monthData();renderList();renderPaper()}
