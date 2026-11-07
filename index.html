@@ -193,8 +193,8 @@ const EMBLEM=`<svg viewBox="0 0 100 100" width="88" height="88" aria-hidden="tru
 function stripHtml(){return `<div class="strip" style="background-image:linear-gradient(rgba(0,100,55,.80),rgba(0,100,55,.80)),url(${PHOTO})"><img src="${LOGO}" alt=""><div>員林基督教醫院藥劑課<small>生日體檢及其它假別預約系統</small></div></div>`}
 function loginView(){return `<div class="photo" style="background-image:url(${PHOTO})"></div><div class="hero ov"><div class="logo"><img src="${LOGO}" alt="員林基督教醫院藥劑課"><div class="lt"><div class="zh">員林基督教醫院藥劑課</div><div class="en">Pharmacy Department, Yuanlin Christian Hospital</div></div></div></div>
 <div class="card lg"><h1 style="font-size:21px;text-align:center;margin-bottom:6px">生日體檢及其它假別預約系統</h1><div class="mut" style="text-align:center;margin-bottom:20px">請使用員工編號登入（帳號與預設密碼皆為員工編號）</div>
-<div class="f"><div class="lb">帳號</div><input type="text" id="acc" inputmode="numeric" autocomplete="username" placeholder="請輸入員工編號"></div>
-<div class="f"><div class="lb">密碼</div><input type="password" id="pw" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" placeholder="請輸入密碼" onkeydown="if(event.key==='Enter')login()"></div>
+<div class="f"><div class="lb">帳號</div><input type="text" id="acc" inputmode="numeric" enterkeyhint="next" autocomplete="username" placeholder="請輸入員工編號" onkeydown="if(event.key==='Enter'){event.preventDefault();$('pw').focus()}"></div>
+<div class="f"><div class="lb">密碼</div><input type="password" id="pw" inputmode="numeric" pattern="[0-9]*" enterkeyhint="go" autocomplete="current-password" placeholder="請輸入密碼" onkeydown="if(event.key==='Enter')login()"></div>
 ${loginErr?`<div style="color:var(--dn);font-weight:600;margin:-6px 0 12px">⚠ ${esc(loginErr)}</div>`:""}
 <button class="go" onclick="login()">登入</button></div>
 <div class="mut" style="text-align:center;margin-top:14px">© 員林基督教醫院藥劑課</div>`}
