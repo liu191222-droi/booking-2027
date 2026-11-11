@@ -132,10 +132,11 @@ const YEAR=2027, ADMINS=["1507175"];
 const SHIFTS=["白班","小夜班","兩頭班","大夜班"];
 const defShift=c=>"白班";
 const shiftSel=(id,v)=>`<select id="${id}" style="flex:1;min-width:100px">${SHIFTS.map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("")}</select>`;
-const CATS=["藥師","半職藥師","助理員"];
+const CATS=["藥師","兼職藥師","助理員"];
+const catFix=c=>c==="半職藥師"?"兼職藥師":c; /* 舊資料的「半職藥師」視為「兼職藥師」 */
 const defCat=c=>"藥師";
 const catSel=(id,v)=>`<select id="${id}" style="flex:1;min-width:100px">${CATS.map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("")}</select>`;
-const STAFF={},SHIFT={},CAT={};function setStaff(l){Object.keys(STAFF).forEach(k=>{delete STAFF[k];delete SHIFT[k];delete CAT[k]});l.forEach(s=>{const p=s.split("|");STAFF[p[0]]=p[1];SHIFT[p[0]]=SHIFTS.includes(p[2])?p[2]:defShift(p[0]);CAT[p[0]]=CATS.includes(p[3])?p[3]:defCat(p[0])})}
+const STAFF={},SHIFT={},CAT={};function setStaff(l){Object.keys(STAFF).forEach(k=>{delete STAFF[k];delete SHIFT[k];delete CAT[k]});l.forEach(s=>{const p=s.split("|");STAFF[p[0]]=p[1];SHIFT[p[0]]=SHIFTS.includes(p[2])?p[2]:defShift(p[0]);CAT[p[0]]=CATS.includes(catFix(p[3]))?catFix(p[3]):defCat(p[0])})}
 let staffReady=false; /* 員工名單只存在資料庫 config/staff */
 const EDU="社區衛教",SLOT_TYPES=["病安","CPR","新人教育訓練","退修會"],LOCK_MSG="當月已停止預約";
 const DEF={options:["生日體檢","病安","CPR","新人教育訓練","退修會",EDU],slots:["上午場","下午場"],eduSlots:["09:00-10:00","10:00-11:00","14:00-15:00","15:00-16:00"]};
@@ -200,7 +201,10 @@ ${loginErr?`<div style="color:var(--dn);font-weight:600;margin:-6px 0 12px">⚠ 
 <div class="mut" style="text-align:center;margin-top:14px">© 員林基督教醫院藥劑課</div>`}
 let loginErr="";
 function loginFail(m){loginErr=m;render();const e=$("pw");if(e){e.value="";e.focus()}}
+const GREETS=["平安","Hello~Hello~","你好","Hi~"];let greet="平安";
+const hello=()=>esc(callName(user))+(/^[A-Za-z]/.test(greet)?" ":"")+greet;
 function finishLogin(a){
+  greet=GREETS[Math.floor(Math.random()*GREETS.length)];
   loginErr="";const isA=ADMINS.includes(a);
   user={code:a,name:STAFF[a],admin:isA,def:!pws[a]};
   if(SHIFT[a]==="大夜班")openNight();else{view="form";render()}
@@ -282,7 +286,7 @@ function formView(){
     ${monthLocked(YEAR+"-"+pad(calM+1)+"-01")?`<div class="mut" style="margin-top:8px;color:var(--dn)">${LOCK_MSG}</div>`:""}
     ${limitOf(sType)?`<div class="mut" style="margin-top:8px">「${esc(sType)}」每天限定 ${limitOf(sType)} 人，額滿的日期會標示「額滿」。</div>`:""}<div class="mut" style="margin-top:8px">${sType==="生日體檢"?"灰色「已約」的日期已有人預約，無法選擇。":"選擇「生日體檢」後，已被預約的日期會標示「已約」。「休」為不開放日。"}</div>
     ${sDate?`<div style="margin-top:8px"><b>已選：${esc(dstr(sDate))}</b></div>`:""}</div>`;
-  return `<div class="top"><div><b>${esc(callName(user))}平安</b> <span class="mut">(${user.code})</span></div><div class="row">${user.admin?`<button class="sec" onclick="go('admin')">後台管理</button>`:""}<button class="sec" onclick="go('pw')">修改密碼</button><button class="sec" onclick="logout()">登出</button></div></div>
+  return `<div class="top"><div><b>${hello()}</b> <span class="mut">(${user.code})</span></div><div class="row">${user.admin?`<button class="sec" onclick="go('admin')">後台管理</button>`:""}<button class="sec" onclick="go('pw')">修改密碼</button><button class="sec" onclick="logout()">登出</button></div></div>
   ${user.def?`<div class="msg">你目前使用預設密碼，建議先<a href="#" onclick="go('pw');return false">修改密碼</a>。</div>`:""}
   ${okB?`<div class="card" style="border:2px solid var(--ac2)"><h2>✅ ${okB.upd?"預約已更新":"預約成功"}</h2><div>項目：${okB.type==="生日體檢"?"🎂 ":""}${esc(okB.type)}<br>日期：${esc(dstr(okB.date))}${okB.slot?`<br>時段：${esc(okB.slot)}`:""}</div><br><button class="sec" onclick="okB=null;render()">關閉</button></div>`:""}
   ${editId?`<div class="msg">正在修改預約，改完請按「更新預約」。</div>`:""}
@@ -333,7 +337,7 @@ function adminView(){
   const chips=(arr,k)=>arr.map((o,i)=>`<span class="chip">${esc(o)}<button onclick="rmItem('${k}',${i})">×</button></span>`).join("");
   const mrows=Array.from({length:12},(_,i)=>{const m=YEAR+"-"+pad(i+1),md=(cfg.monthMode||{})[m],lk=monthLocked(m+"-01");return `<tr><td>${i+1}月</td><td style="color:${lk?"var(--dn)":"#007440"}">${monthStatus(m)}</td><td style="white-space:nowrap"><button class="sec" style="padding:4px 10px" ${lk?"":"disabled"} onclick="setMonthMode('${m}','open')">開啟</button> <button class="del" ${lk?"disabled":""} onclick="setMonthMode('${m}','closed')">關閉</button>${md?` <button class="sec" style="padding:4px 10px" onclick="setMonthMode('${m}',null)">恢復自動</button>`:""}</td></tr>`}).join("");
   const staff=Object.keys(STAFF).map(c=>sEdit===c?`<tr><td><input type="text" id="ec_${c}" value="${esc(c)}" style="min-width:90px"></td><td><input type="text" id="en_${c}" value="${esc(STAFF[c])}" style="min-width:80px"></td><td>${shiftSel("es_"+c,SHIFT[c]||defShift(c))}</td><td>${catSel("ea_"+c,CAT[c]||defCat(c))}</td><td colspan="2" style="white-space:nowrap"><button style="padding:4px 10px" onclick="saveStaffEdit('${c}')">儲存</button> <button class="sec" style="padding:4px 10px" onclick="sEdit=null;render()">取消</button></td></tr>`:`<tr><td>${c}</td><td>${esc(STAFF[c])}</td><td>${esc(SHIFT[c]||defShift(c))}</td><td>${esc(CAT[c]||defCat(c))}</td><td>${pws[c]?"已自訂":"預設"}</td><td style="white-space:nowrap"><button class="sec" style="padding:4px 10px" onclick="sEdit='${c}';render()">修改</button> <button class="del" onclick="delStaff('${c}')">刪除</button>${pws[c]?` <button class="del" onclick="resetPw('${c}')">重設密碼</button>`:""}</td></tr>`).join("");
-  return `<div class="top"><div><h1>後台管理</h1><div class="mut">${esc(callName(user))}平安（${user.code}）</div></div><div class="row">${user.code!=="admin"?`<button class="sec" onclick="go('form')">我的預約</button>`:""}<button class="sec" onclick="go('pw')">修改密碼</button><button class="sec" onclick="logout()">登出</button></div></div>
+  return `<div class="top"><div><h1>後台管理</h1><div class="mut">${hello()}（${user.code}）</div></div><div class="row">${user.code!=="admin"?`<button class="sec" onclick="go('form')">我的預約</button>`:""}<button class="sec" onclick="go('pw')">修改密碼</button><button class="sec" onclick="logout()">登出</button></div></div>
   <div class="tabs"><button class="${adminTab==="book"?"on":""}" onclick="adminTab='book';render()">預約情形</button><button class="${adminTab==="opt"?"on":""}" onclick="adminTab='opt';render()">選項管理</button><button class="${adminTab==="all"?"on":""}" onclick="adminTab='all';render()">全員預約情形</button><button class="${adminTab==="stf"?"on":""}" onclick="adminTab='stf';render()">員工帳號</button><button class="${adminTab==="night"?"on":""}" onclick="adminTab='night';render()">🌙 大夜排班後台管理</button><button onclick="openOT('admin',1)">💰 加班費申請後台</button></div>`+
   (adminTab==="book"?`<div class="mg" style="margin:0 0 12px">${tabs}</div>
   <div class="card"><h2>預約明細（${month+1} 月起，共 ${rest.length} 筆）</h2><div class="scroll"><table><tr><th>日期</th><th>時段</th><th>姓名</th><th>項目</th><th>備註</th><th></th></tr>${rows}</table></div></div><div class="card"><h2>${YEAR} 年 ${month+1} 月（${list.length} 筆）</h2><div class="scroll"><div class="cal">${cal}</div></div></div>`:
@@ -420,7 +424,7 @@ function ask(m){return new Promise(r=>{const d=document.createElement("div");d.s
   d.querySelector("#an").onclick=()=>{d.remove();r(false)};d.querySelector("#ay").onclick=()=>{d.remove();r(true)}})}
 function staffStatHtml(){
   const v=Object.keys(STAFF).map(c=>CAT[c]||defCat(c)),n=k=>v.filter(x=>x===k).length;
-  return `<div class="st"><div class="hl"><span>總員工</span><b>${v.length}</b></div><div class="hl" title="藥師＋半職藥師"><span>全部藥師</span><b>${n("藥師")+n("半職藥師")}</b></div><div><span>藥師</span><b>${n("藥師")}</b></div><div><span>半職藥師</span><b>${n("半職藥師")}</b></div><div><span>助理員</span><b>${n("助理員")}</b></div></div>`}
+  return `<div class="st"><div class="hl"><span>總員工</span><b>${v.length}</b></div><div class="hl" title="藥師＋兼職藥師"><span>全部藥師</span><b>${n("藥師")+n("兼職藥師")}</b></div><div><span>藥師</span><b>${n("藥師")}</b></div><div><span>兼職藥師</span><b>${n("兼職藥師")}</b></div><div><span>助理員</span><b>${n("助理員")}</b></div></div>`}
 async function exportStaff(){
   if(typeof XLSX==="undefined")return flash("Excel 元件載入失敗，請重新整理後再試");
   const rows=[["員編","姓名","類別"]].concat(Object.keys(STAFF).map(c=>[String(c),STAFF[c],CAT[c]||defCat(c)]));
@@ -500,9 +504,9 @@ const nName=c=>callName({code:c,name:STAFF[c]||c});
 const nMeId=()=>user&&nList().includes(user.code)?user.code:"";
 const nAv=()=>nAllAvail[nMonth]||(nAllAvail[nMonth]={});
 const nRun=(s,d)=>{let a=d,b=d;while(s.has(a-1))a--;while(s.has(b+1))b++;return b-a+1};
-/* 兼職排班：只有人員類別為「半職藥師」的人（與管理者）可以進入；內容尚未建置 */
-function ptAllowed(){return !!user&&(user.admin||CAT[user.code]==="半職藥師")}
-function openPT(){if(!ptAllowed()){notice("限人員類別為「半職藥師」的同仁使用");return}view="pt";render();window.scrollTo(0,0)}
+/* 兼職排班：只有人員類別為「兼職藥師」的人（與管理者）可以進入；內容尚未建置 */
+function ptAllowed(){return !!user&&(user.admin||CAT[user.code]==="兼職藥師")}
+function openPT(){if(!ptAllowed()){notice("限兼職藥師使用");return}view="pt";render();window.scrollTo(0,0)}
 function ptView(){
   if(!ptAllowed()){setTimeout(()=>{view="form";render()},0);return ""}
   return `<div class="top"><div><b>🕒 兼職排班</b></div><button class="sec" onclick="go('form')">其它假別預約畫面</button></div><div class="card"><h2>兼職排班</h2><div class="mut">此功能建置中，敬請期待。</div></div>`}
