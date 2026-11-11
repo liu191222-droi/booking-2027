@@ -38,8 +38,9 @@ button,input,select{font:inherit;color:inherit}
 .brand b{font-family:var(--f-display);font-size:20px;letter-spacing:.04em}
 .brand small{color:var(--muted);font-size:12px;letter-spacing:.06em}
 .month{display:flex;align-items:center;gap:6px;margin-left:auto}
-.month .lbl{font-weight:700;min-width:118px;text-align:center}
-.iconbtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer;display:grid;place-items:center}
+.month .lbl{font-weight:700;min-width:220px;text-align:center;font-size:24px;color:var(--accent);font-family:var(--f-num);letter-spacing:.02em}
+@media (max-width:560px){.month{margin-left:0;width:100%;justify-content:center}.month .lbl{font-size:20px;min-width:0}}
+.iconbtn{width:42px;height:42px;font-size:22px;font-weight:700;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer;display:grid;place-items:center}
 .iconbtn:hover{border-color:var(--accent)}
 .tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:0}
 .tabs a{padding:10px 14px;text-decoration:none;color:var(--muted);font-weight:500;border-bottom:3px solid transparent;white-space:nowrap}
@@ -261,7 +262,7 @@ const hostUser=()=>HOST&&HOST.user?HOST.user():null;
 const myCode=()=>{const u=hostUser();return u?String(u.code):''};
 const now=new Date();
 const S={db:null,user:null,dl:undefined,demo:false,admin:false,ready:false,err:'',
-  config:null,staff:[],sched:{},ym:ymOf(now.getFullYear(),now.getMonth()+1),
+  config:null,staff:[],sched:{},ym:ymOf(now.getMonth()===11?now.getFullYear()+1:now.getFullYear(),now.getMonth()===11?1:now.getMonth()+2), /* 預設為下個月 */
   tab:'mine',tool:null,anchor:null,draft:null,myShifts:{},addShift:null,custom:{st:'09:00',en:'13:00',brk:0},me:'',fill:{shift:'',skipWk:true},unsubSched:null};
 try{S.me=localStorage.getItem('pt-me')||''}catch(e){}
 const isDenied=e=>e&&(e.code==='permission_denied'||e.code==='permission-denied');
@@ -383,13 +384,16 @@ async function delStaff(id){
 }
 
 /* ---------- routing & chrome ---------- */
+/* 一般模式只有「我的班表」；從後台「兼職排班管理」進入（?mode=admin，且為管理者）只有主管功能 */
+const ADM=new URLSearchParams(location.search).get('mode')==='admin';
 const TABS=[['mine','我的班表',false],['plan','主管排班',true],['report','入薪申請表',true],['setup','班別與人員',true]];
-function route(){const h=location.hash.slice(1);S.tab=TABS.some(t=>t[0]===h)?h:'mine';render()}
+function route(){const h=location.hash.slice(1);S.tab=TABS.some(t=>t[0]===h)?h:(ADM?'plan':'mine');render()}
 function chrome(){
   document.getElementById('monthLbl').textContent=roc(S.ym)+'（'+ymParts(S.ym).y+'）';
   document.getElementById('deptLine').textContent=cfg().deptName+' · 部門代號 '+cfg().deptCode;
-  const tabs=TABS.filter(t=>!t[2]||S.admin);
-  if(!tabs.some(t=>t[0]===S.tab))S.tab='mine';
+  const adm=ADM&&S.admin,tabs=TABS.filter(t=>adm?t[2]:!t[2]);
+  if(!tabs.some(t=>t[0]===S.tab))S.tab=tabs[0][0];
+  document.querySelector('.brand b').textContent=adm?'兼職藥師排班管理':'兼職藥師排班系統';
   document.getElementById('tabs').innerHTML=tabs.map(t=>`<a href="#${t[0]}" ${t[0]===S.tab?'aria-current="page"':''}>${t[1]}</a>`).join('');
 }
 async function shiftMonth(k){if(S.draft&&!(await flushDraft()))return;S.anchor=null;const{y,m}=ymParts(S.ym);const d=new Date(y,m-1+k,1);S.ym=ymOf(d.getFullYear(),d.getMonth()+1);if(S.demo){startDemo()}else{subSched();render()}}
