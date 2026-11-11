@@ -287,7 +287,7 @@ function formView(){
   ${okB?`<div class="card" style="border:2px solid var(--ac2)"><h2>✅ ${okB.upd?"預約已更新":"預約成功"}</h2><div>項目：${okB.type==="生日體檢"?"🎂 ":""}${esc(okB.type)}<br>日期：${esc(dstr(okB.date))}${okB.slot?`<br>時段：${esc(okB.slot)}`:""}</div><br><button class="sec" onclick="okB=null;render()">關閉</button></div>`:""}
   ${editId?`<div class="msg">正在修改預約，改完請按「更新預約」。</div>`:""}
   <div class="card"><h2>我的預約/申請情形</h2><div style="margin-bottom:8px">${myFil}</div>${cards}</div>
-  <div class="card"><h2 class="req">你要預約/申請</h2><div class="cards"><button class="pick nn" onclick="openOT('form')">💰 加班費申請</button>${SHIFT[user.code]==="大夜班"?`<button class="pick nn" onclick="openNight()">🌙 大夜排班</button>${types}`:`${types}<button class="pick nn" onclick="openNight()">🌙 大夜排班</button>`}</div>${other}</div>
+  <div class="card"><h2 class="req">你要預約/申請</h2><div class="cards"><button class="pick nn" onclick="openOT('form')">💰 加班費申請</button>${SHIFT[user.code]==="大夜班"?`<button class="pick nn" onclick="openNight()">🌙 大夜排班</button>${types}`:`${types}<button class="pick nn" onclick="openNight()">🌙 大夜排班</button>`}<button class="pick nn" onclick="openPT()">🕒 兼職排班</button></div>${other}</div>
   ${sType&&!sk?calCard:""}
   ${sk?`<div class="card"><h2 class="req">你要預約/申請什麼時段？</h2>${sessBtns?`<div class="cards">${sessBtns}${sk==="edu"?`<button class="pick ${sSlot==="__custom"?"on":""}" onclick="pickSlot('__custom')">自訂日期與時間</button>`:""}</div>`:`<div class="mut">目前沒有開放預約的場次${sk==="edu"?"，可以選擇自訂日期與時間":""}。</div>${sk==="edu"?`<div class="cards" style="margin-top:8px"><button class="pick ${sSlot==="__custom"?"on":""}" onclick="pickSlot('__custom')">自訂日期與時間</button></div>`:""}`}${sk==="edu"&&sSlot==="__custom"?`<div class="row" style="margin-top:12px;align-items:center"><span>從</span><input type="time" id="t1" value="${esc(sT1)}" oninput="sT1=this.value"><span>到</span><input type="time" id="t2" value="${esc(sT2)}" oninput="sT2=this.value"></div>`:""}</div>${sk==="edu"&&sSlot==="__custom"?calCard:""}`:""}
   ${sType||editId?`<div class="card"><h2>備註</h2><input type="text" id="note" value="${esc(sNote)}" oninput="sNote=this.value" placeholder="選填"></div>
@@ -481,7 +481,7 @@ function render0(){
   let h=local?`<div class="msg mut">目前為單機模式：資料只存在這台瀏覽器，不會與其他人共用（無法連線到資料庫）。</div>`:"";
   if(msg)h+=`<div class="msg">${esc(msg)}</div>`;
   if(view!=="login")h+=stripHtml();
-  h+=view==="login"?loginView():view==="form"?formView():view==="pw"?pwView():view==="night"?nightView():view==="ot"?otView():adminView();
+  h+=view==="login"?loginView():view==="form"?formView():view==="pw"?pwView():view==="night"?nightView():view==="pt"?ptView():view==="ot"?otView():adminView();
   $("app").innerHTML=h;
   Object.entries(keep).forEach(([k,v])=>{if($(k))$(k).value=v});
   if(view==="form"){[["type",fv],["slot",sv]].forEach(([n,v])=>{const e=[...document.querySelectorAll(`input[name=${n}]`)].find(x=>x.value===v);if(e)e.checked=true})}
@@ -500,6 +500,12 @@ const nName=c=>callName({code:c,name:STAFF[c]||c});
 const nMeId=()=>user&&nList().includes(user.code)?user.code:"";
 const nAv=()=>nAllAvail[nMonth]||(nAllAvail[nMonth]={});
 const nRun=(s,d)=>{let a=d,b=d;while(s.has(a-1))a--;while(s.has(b+1))b++;return b-a+1};
+/* 兼職排班：只有人員類別為「半職藥師」的人（與管理者）可以進入；內容尚未建置 */
+function ptAllowed(){return !!user&&(user.admin||CAT[user.code]==="半職藥師")}
+function openPT(){if(!ptAllowed()){notice("限人員類別為「半職藥師」的同仁使用");return}view="pt";render();window.scrollTo(0,0)}
+function ptView(){
+  if(!ptAllowed()){setTimeout(()=>{view="form";render()},0);return ""}
+  return `<div class="top"><div><b>🕒 兼職排班</b></div><button class="sec" onclick="go('form')">其它假別預約畫面</button></div><div class="card"><h2>兼職排班</h2><div class="mut">此功能建置中，敬請期待。</div></div>`}
 function nightAllowed(){return !!user&&(user.admin||SHIFT[user.code]==="大夜班")}
 function openNight(){if(!nightAllowed()){notice("限大夜包班人員使用");return}nMsg="";nTab="staff";nResetMine();view="night";render();window.scrollTo(0,0)}
 function nResetMine(){const me=nMeId();nDirty=false;nMine=new Set((me&&nAv()[me])||[]);nEditing=!(me&&nAv()[me])}
