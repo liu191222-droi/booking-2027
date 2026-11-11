@@ -460,8 +460,8 @@ function viewMine(){
   }else h+=`</div>`;
   h+=`</section>`;
   if(!me)return h;
-  const lk=locked(),sent=!hasDraft(me.id)&&S.sched[me.id]&&S.sched[me.id].status==='sent',ro=lk||sent;
-  h+=`<section class="panel ${ro?'':'has-x'}">${ro?'':`<button class="px" data-act="clearAll" data-label="✕" title="全部清除" aria-label="全部清除">✕</button>`}<h2>${esc(cfg().staffTitle||'排 OFF 與上班日')}<small>${sent?'已送出；要調整請按「修改」':esc(cfg().staffSub||'')}</small></h2>${cfg().staffGuide?`<div class="guide">${esc(cfg().staffGuide).replace(/\n/g,'<br>')}</div>`:''}`;
+  const lk=locked(),sent=!hasDraft(me.id)&&S.sched[me.id]&&S.sched[me.id].status==='sent',ro=lk; // 送出後仍可直接修改（班別、OFF、常用班別都保留），只有主管鎖定的月份才唯讀
+  h+=`<section class="panel ${ro?'':'has-x'}">${ro?'':`<button class="px" data-act="clearAll" data-label="✕" title="全部清除" aria-label="全部清除">✕</button>`}<h2>${esc(cfg().staffTitle||'排 OFF 與上班日')}<small>${sent?'已送出；如需調整，直接修改後再按「送出」':esc(cfg().staffSub||'')}</small></h2>${cfg().staffGuide?`<div class="guide">${esc(cfg().staffGuide).replace(/\n/g,'<br>')}</div>`:''}`;
   if(!ro)h+=toolsHtml(effMode(me),me.id);
   h+=calendarHtml(me,ro);
   const w=weekCheck(me);if(w)h+=`<span class="small muted">${w}</span>`;
@@ -469,12 +469,11 @@ function viewMine(){
   h+=`<label class="f">備註<textarea id="myNote" rows="2" maxlength="300" placeholder="例如：11/20 下午要上課、希望集中排早班…" ${ro?'readonly':''}>${esc(note)}</textarea></label>`;
   h+=`<div class="actions">`;
   if(lk)h+=`<span class="small muted">本月已鎖定，無法修改。</span>`;
-  else if(sent)h+=`<span></span><div class="row"><button class="btn primary" data-act="reopen">修改</button></div>`;
   else h+=`<button class="btn danger" data-act="clearAll" data-label="全部清除">全部清除</button><div class="row"><button class="btn" data-act="saveDraft" ${hasDraft(me.id)?'':'disabled'}>暫存</button><button class="btn primary" data-act="submit">送出</button></div>`;
   h+=`</div></section>`;
   return h;
 }
-function meRO(me){const doc=S.sched[me.id];return locked()||(!hasDraft(me.id)&&doc&&doc.status==='sent')}
+function meRO(me){return locked()}
 function statusPill(doc){if(!doc)return `<span class="pill none">尚未填寫</span>`;return doc.status==='sent'?`<span class="pill sent">已送出</span>`:`<span class="pill draft">暫存中</span>`}
 function shiftLbl(s){return `<span>${esc(s.name)}</span><small class="num">${s.start}–${s.end} · ${fmtH(hrs(s.start,s.end,s.brk))}h</small>`}
 function myToolHtml(s,selectable){const T=S.tool;
