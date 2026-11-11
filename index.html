@@ -167,7 +167,7 @@ async function init(){
   if(db){
     store={db,saveStaff:l=>db.doc("config/staff").set({list:l}),saveCfg:c=>db.doc("config/main").set(c),addB:b=>db.collection("bookings").doc(b.id).set(b),delB:id=>db.collection("bookings").doc(id).delete(),
       setPw:(c,h)=>db.collection("pw").doc(c).set({h}),resetPw:c=>db.collection("pw").doc(c).delete()};
-    db.doc("config/staff").onSnapshot(s=>{if(s.exists&&Array.isArray(s.data().list))setStaff(s.data().list);staffReady=true;render()},()=>{});
+    db.doc("config/staff").onSnapshot(s=>{if(s.exists&&Array.isArray(s.data().list))setStaff(s.data().list);staffReady=true;render();try{const f=$("ptf");if(f&&f.contentWindow.PTREFRESH)f.contentWindow.PTREFRESH()}catch(e){}},()=>{});
     db.doc("config/main").onSnapshot(s=>{if(s.exists){const d=s.data();cfg=normCfg(d)}render()},()=>{});
     db.collection("bookings").onSnapshot(s=>{bookings=s.docs.map(d=>({...d.data(),id:d.id}));render()},()=>{});
     db.collection("ot").onSnapshot(s=>{otDocs=s.docs.map(d=>d.data());render()},()=>{});
