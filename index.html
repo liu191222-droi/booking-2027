@@ -475,7 +475,7 @@ function openOT(from,adm){otFrom=from;otGo=adm?"admin":"";view="ot";render();win
 function otBack(){view=otFrom;render();window.scrollTo(0,0)}
 function otView(){return `<iframe id="otf" src="overtime.html${otGo?"?go="+otGo:""}" style="width:100%;height:calc(100vh - 110px);min-height:560px;border:0;border-radius:12px;background:#fff"></iframe>`}
 window.OTHOST={user:()=>user,staff:()=>STAFF,db:()=>store&&store.db,call:()=>user?callName(user):"",back:otBack,logout:()=>{logout();window.scrollTo(0,0)}};
-function render(){if(view==="ot"&&document.getElementById("otf"))return;render0();$("app").classList.toggle("wide",view==="ot");if(view==="form"){applyFill();updSlot()}}
+function render(){if(view==="ot"&&document.getElementById("otf"))return;if(view==="pt"&&document.getElementById("ptf"))return;render0();$("app").classList.toggle("wide",view==="ot"||view==="pt");if(view==="form"){applyFill();updSlot()}}
 async function addBlock(){const v=$("bd").value;if(!v)return;if(!v.startsWith(YEAR+"-"))return flash("日期必須在 "+YEAR+" 年內");const b=cfg.blocked||[];if(b.includes(v))return flash("已設定過");const c={...cfg,blocked:[...b,v].sort()};try{await store.saveCfg(c);cfg=c;render()}catch(e){flash("儲存失敗")}}
 async function rmBlock(d){const c={...cfg,blocked:(cfg.blocked||[]).filter(x=>x!==d)};try{await store.saveCfg(c);cfg=c;render()}catch(e){flash("儲存失敗")}}
 function render0(){
@@ -504,12 +504,15 @@ const nName=c=>callName({code:c,name:STAFF[c]||c});
 const nMeId=()=>user&&nList().includes(user.code)?user.code:"";
 const nAv=()=>nAllAvail[nMonth]||(nAllAvail[nMonth]={});
 const nRun=(s,d)=>{let a=d,b=d;while(s.has(a-1))a--;while(s.has(b+1))b++;return b-a+1};
-/* 兼職排班：只有人員類別為「兼職藥師」的人（與管理者）可以進入；內容尚未建置 */
+/* 兼職排班：只有人員類別為「兼職藥師」的人（與管理者）可以進入；內容在 parttime.html（以 iframe 嵌入，透過 PTHOST 取得登入者與資料庫） */
 function ptAllowed(){return !!user&&(user.admin||CAT[user.code]==="兼職藥師")}
 function openPT(){if(!ptAllowed()){notice("限兼職藥師使用");return}view="pt";render();window.scrollTo(0,0)}
 function ptView(){
   if(!ptAllowed()){setTimeout(()=>{view="form";render()},0);return ""}
-  return `<div class="top"><div><b>🕒 兼職排班</b></div><button class="sec" onclick="go('form')">其它假別預約畫面</button></div><div class="card"><h2>兼職排班</h2><div class="mut">此功能建置中，敬請期待。</div></div>`}
+  const head=`<div class="top"><div><b>🕒 兼職排班</b></div><button class="sec" onclick="go('form')">其它假別預約畫面</button></div>`;
+  if(!store||!store.db)return `${head}<div class="card">目前無法連線資料庫（單機模式），兼職排班需要連線資料庫才能使用。</div>`;
+  return `${head}<iframe id="ptf" src="parttime.html" style="width:100%;height:calc(100vh - 150px);min-height:560px;border:0;border-radius:12px;background:#fff"></iframe>`}
+window.PTHOST={user:()=>user,db:()=>store&&store.db,ptStaff:()=>Object.keys(STAFF).filter(c=>CAT[c]==="兼職藥師").map(c=>({code:c,name:STAFF[c]}))};
 function nightAllowed(){return !!user&&(user.admin||SHIFT[user.code]==="大夜班")}
 function openNight(){if(!nightAllowed()){notice("限大夜包班人員使用");return}nMsg="";nTab="staff";nResetMine();view="night";render();window.scrollTo(0,0)}
 function nResetMine(){const me=nMeId();nDirty=false;nMine=new Set((me&&nAv()[me])||[]);nEditing=!(me&&nAv()[me])}

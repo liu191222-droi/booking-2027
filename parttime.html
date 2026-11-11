@@ -1,0 +1,775 @@
+<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>兼職藥師排班系統</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one working column — top bar, tabs, then a single tool surface per tab; wide grids scroll inside their own frame. */
+:root{
+  --bg:#eef2f1; --surface:#ffffff; --surface-2:#f6f8f8; --ink:#17211f; --muted:#5b6966; --line:#d6dedc;
+  --accent:#0d6656; --accent-ink:#ffffff; --accent-soft:#dcece8;
+  --sun:#ec5a87; --sun-soft:#fde3eb; --sat:#83b86a; --sat-soft:#e5f1dd;
+  --warn:#9a6212; --warn-soft:#f8ecd6; --ok:#2f7d4c; --ok-soft:#dff0e5; --danger:#b4363a;
+  --f-display:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111715; --surface:#19211f; --surface-2:#1e2826; --ink:#e4ebe9; --muted:#97a6a2; --line:#2d3936;
+  --accent:#4cb8a2; --accent-ink:#06211b; --accent-soft:#1d3833;
+  --sun:#f07ba0; --sun-soft:#3d2230; --sat:#9ccb85; --sat-soft:#24331f;
+  --warn:#e2b25c; --warn-soft:#3a2e18; --ok:#7fcf9b; --ok-soft:#1b3326; --danger:#f08084; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111715; --surface:#19211f; --surface-2:#1e2826; --ink:#e4ebe9; --muted:#97a6a2; --line:#2d3936;
+  --accent:#4cb8a2; --accent-ink:#06211b; --accent-soft:#1d3833;
+  --sun:#f07ba0; --sun-soft:#3d2230; --sat:#9ccb85; --sat-soft:#24331f;
+  --warn:#e2b25c; --warn-soft:#3a2e18; --ok:#7fcf9b; --ok-soft:#1b3326; --danger:#f08084; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+button,input,select{font:inherit;color:inherit}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+
+/* top bar */
+.top{background:var(--surface);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding-block:14px}
+.brand{display:flex;flex-direction:column;min-width:0}
+.brand b{font-family:var(--f-display);font-size:20px;letter-spacing:.04em}
+.brand small{color:var(--muted);font-size:12px;letter-spacing:.06em}
+.month{display:flex;align-items:center;gap:6px;margin-left:auto}
+.month .lbl{font-weight:700;min-width:118px;text-align:center}
+.iconbtn{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer;display:grid;place-items:center}
+.iconbtn:hover{border-color:var(--accent)}
+.tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:0}
+.tabs a{padding:10px 14px;text-decoration:none;color:var(--muted);font-weight:500;border-bottom:3px solid transparent;white-space:nowrap}
+.tabs a[aria-current="page"]{color:var(--ink);border-color:var(--accent)}
+.tabbar{background:var(--surface);border-bottom:1px solid var(--line)}
+
+main.wrap{padding-block:22px 60px;display:flex;flex-direction:column;gap:18px}
+.banner{padding:10px 14px;border-radius:var(--r);font-size:14px}
+.banner.demo{background:var(--warn-soft);color:var(--warn)}
+.banner.lock{background:var(--accent-soft);color:var(--accent)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel h2{margin:0;font-size:17px}
+.panel h2 small{font-weight:400;color:var(--muted);font-size:13px;margin-left:8px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--danger)}
+.btn.danger.armed{background:var(--danger);border-color:var(--danger);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=text],input[type=number],input[type=time],input[type=date],select{border:1px solid var(--line);background:var(--surface-2);border-radius:7px;padding:7px 9px;min-width:0}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+label.f>input,label.f>select{color:var(--ink);font-size:15px}
+
+.pill{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:500;white-space:nowrap}
+.pill.draft{background:var(--warn-soft);color:var(--warn)}
+.pill.sent{background:var(--ok-soft);color:var(--ok)}
+.pill.none{background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.pill.mode{background:var(--accent-soft);color:var(--accent)}
+
+/* who-am-i */
+.me{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:end}
+.me .stat{text-align:right}
+.me .stat b{font-size:28px;display:block;line-height:1.1}
+@media (max-width:560px){.me{grid-template-columns:1fr}.me .stat{text-align:left}}
+
+/* tools */
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.tool{border:1.5px solid var(--line);background:var(--surface);border-radius:9px;padding:6px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;line-height:1.25}
+.tool small{color:var(--muted);font-size:11.5px}
+.tool[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.myshifts{display:flex;flex-direction:column;gap:8px;padding-bottom:12px;border-bottom:1px dashed var(--line)}
+.modes{border:0;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+.modes legend{font-size:13px;color:var(--muted);margin-bottom:6px;display:flex;gap:8px;align-items:center}
+.mode-opt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:9px;padding:10px 12px;cursor:pointer}
+.mode-opt.on{border-color:var(--accent);background:var(--accent-soft)}
+.mode-opt.dis{cursor:default}
+.mode-opt.dis:not(.on){opacity:.55}
+.mode-opt input{margin-top:4px;accent-color:var(--accent)}
+#myNote{border:1px solid var(--line);background:var(--surface-2);border-radius:7px;padding:8px;color:var(--ink);font:inherit;resize:vertical}
+.nnote{font-size:11.5px;color:var(--muted);max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.star{position:absolute;top:-7px;right:-7px;width:22px;height:22px;border-radius:50%;border:2px solid var(--surface);background:var(--accent-soft);color:var(--accent);font-size:13px;line-height:1;display:grid;place-items:center;cursor:pointer;padding:0;z-index:1}
+.star:hover{background:var(--accent);color:var(--accent-ink)}
+.custom.picks{flex-direction:column;align-items:stretch}
+.guide{background:var(--accent-soft);border-radius:9px;padding:10px 12px;font-size:14px;line-height:1.7}
+.ed{position:absolute;bottom:-8px;right:-6px;height:18px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--accent);font-size:10.5px;line-height:1;padding:0 6px;cursor:pointer;z-index:1}
+.ed:hover{border-color:var(--accent)}
+.tool.mine{padding-bottom:10px}
+.tgroup{display:flex;flex-direction:column;gap:8px}
+.mytag{font-style:normal;font-size:10.5px;color:var(--accent);font-weight:700;margin-top:1px}
+.def{display:inline-block;margin-left:6px;font-size:11px;color:var(--accent);font-weight:700}
+.modes legend .small{color:var(--muted)}
+.mslbl{font-weight:700;font-size:14px}
+.mslbl small{font-weight:400;color:var(--muted);margin-left:8px;font-size:12.5px}
+.toolwrap{position:relative}
+.tool.mine{border-style:solid;border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+div.tool.mine{cursor:default}
+.tool.add{border-style:dashed;color:var(--accent)}
+.x.armed{width:auto;padding:0 6px;border-radius:99px}
+.tool.off-R,.tool.off-F{flex-direction:row;gap:6px;align-items:center}
+.custom{display:flex;flex-wrap:wrap;gap:10px;align-items:end;padding:12px;border-radius:9px;background:var(--surface-2)}
+
+/* calendar */
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal .dh{font-size:12px;text-align:center;color:var(--muted);font-weight:500}
+.cal .dh.sun{color:var(--sun)} .cal .dh.sat{color:var(--sat)}
+.day{min-height:78px;border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:6px;display:flex;flex-direction:column;gap:4px;text-align:left;cursor:pointer;min-width:0}
+.day{position:relative}
+.day.live{cursor:pointer}
+.day.live:hover{border-color:var(--accent)}
+.day:not(.live){cursor:default}
+.x{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:2px solid var(--surface);background:var(--danger);color:#fff;font-size:10px;line-height:1;display:grid;place-items:center;cursor:pointer;padding:0;z-index:1}
+.x:hover{transform:scale(1.12)}
+.capof{font-size:15px;color:var(--muted)}
+.capbar{height:6px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
+.capbar span{display:block;height:100%;background:var(--accent)}
+.capbar.full span{background:var(--danger)}
+.actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:14px}
+.tot.over{color:var(--danger);font-weight:700}
+.day:disabled{cursor:default}
+.day.nowk{background:var(--surface-2);border-style:dashed;opacity:.6}
+.day,.cellbtn{user-select:none;-webkit-user-select:none}
+.day.anchor,.cellbtn.anchor{box-shadow:inset 0 0 0 2px var(--warn)}
+.hint{font-size:12.5px;color:var(--muted)}
+.hint kbd{font-family:var(--f-num);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--surface-2)}
+.day .dn{font-family:var(--f-num);font-size:13px;color:var(--muted)}
+.day.sun .dn{color:var(--sun)} .day.sat .dn{color:var(--sat)}
+.day.today{box-shadow:inset 0 0 0 2px var(--accent)}
+.day.blank{visibility:hidden}
+.chip{border-radius:6px;padding:3px 6px;font-size:12.5px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip.w{background:var(--accent-soft);color:var(--ink)}
+.chip.w.mgr{background:var(--surface-2);border:1px dashed var(--line)}
+.chip.R,.chip.OFF{background:var(--sun-soft);color:var(--sun);font-weight:700}
+.chip.OFF.auto{background:transparent;border:1px dashed var(--sun);font-weight:500}
+.chip.F{background:var(--sat-soft);color:var(--ok);font-weight:700}
+.chip .h{font-family:var(--f-num);opacity:.75}
+@media (max-width:560px){.day{min-height:62px;padding:4px}.chip{font-size:11px;padding:2px 3px}.chip .t{display:none}}
+
+/* plan grid */
+.gridwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table.plan{border-collapse:separate;border-spacing:0;font-size:13px}
+table.plan th,table.plan td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:0;text-align:center}
+table.plan td{position:relative}
+.cx{position:absolute;top:1px;right:1px;width:15px;height:15px;border-radius:50%;border:0;background:var(--danger);color:#fff;font-size:8px;line-height:1;display:grid;place-items:center;cursor:pointer;padding:0;opacity:0;z-index:1}
+td:hover>.cx,.cx:focus-visible{opacity:1}
+@media (hover:none){.cx{opacity:1}}
+.linkbtn{border:0;background:none;color:var(--danger);font-size:12px;padding:0;cursor:pointer;text-decoration:underline}
+.linkbtn.armed{font-weight:700}
+.panel.has-x{position:relative;padding-right:52px}
+.px{position:absolute;top:12px;right:12px;height:30px;min-width:30px;border-radius:99px;border:0;background:var(--danger);color:#fff;font-size:14px;cursor:pointer;padding:0 9px;font-weight:700}
+.px.armed{font-size:12.5px}
+table.plan thead th{background:var(--surface-2);font-weight:500;padding:4px 0;position:sticky;top:0}
+table.plan .nm{position:sticky;left:0;background:var(--surface);z-index:1;text-align:left;padding:6px 10px;min-width:150px}
+table.plan thead .nm{z-index:2;background:var(--surface-2)}
+table.plan .dcol{width:38px;min-width:38px}
+table.plan th.sun{color:var(--sun)} table.plan th.sat{color:var(--sat)}
+table.plan td.sun{background:color-mix(in srgb,var(--sun-soft) 55%,transparent)}
+table.plan td.sat{background:color-mix(in srgb,var(--sat-soft) 55%,transparent)}
+.cellbtn{width:100%;height:40px;border:0;background:transparent;cursor:pointer;font-size:12.5px;padding:0}
+.cellbtn:hover{background:var(--accent-soft)}
+.cellbtn.closed{display:grid;place-items:center;cursor:not-allowed;background:repeating-linear-gradient(135deg,transparent 0 5px,color-mix(in srgb,var(--line) 70%,transparent) 5px 6px)}
+.cellbtn.closed:hover{background:repeating-linear-gradient(135deg,transparent 0 5px,color-mix(in srgb,var(--line) 70%,transparent) 5px 6px)}
+.cellbtn .R,.cellbtn .OFF{color:var(--sun);font-weight:700;font-size:11px} .cellbtn .F{color:var(--ok);font-weight:700}
+.cellbtn .w{font-weight:700} .cellbtn .w small{display:block;font-family:var(--f-num);font-weight:500;color:var(--muted);font-size:10.5px}
+table.plan .tot{min-width:64px;padding:0 8px;font-family:var(--f-num)}
+.nm .sub{display:flex;gap:4px;margin-top:2px}
+
+/* report sheet: replica of the paper form, deliberately paper-coloured in both themes */
+.sheetwrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--line);background:#fff}
+.sheet{background:#fff;color:#000;padding:14px 16px 20px;min-width:1140px;font-family:"PMingLiU","MingLiU","Noto Serif TC",serif;font-size:11px}
+.sheet .hd{display:grid;grid-template-columns:200px 1fr 260px;align-items:end}
+.sheet .hd .t{text-align:center;font-size:17px;font-weight:700;letter-spacing:.05em}
+.sheet .hd .note{color:#d0021b;text-align:right;font-size:10.5px}
+.sheet table{border-collapse:collapse;width:100%;margin-top:4px;table-layout:fixed}
+.sheet th,.sheet td{border:1px solid #000;text-align:center;padding:0;font-weight:400;color:#000}
+.sheet thead th{height:22px;font-size:10.5px}
+.sheet tbody td{height:44px;font-size:12px}
+.sheet .wk0{background:#ff6f9c} .sheet .wk6{background:#c6e0b4} .sheet .nod{background:#bfbfbf}
+.sheet .dt{color:#c00}
+.sheet td.off{font-size:9px;letter-spacing:-.02em}
+.sheet .notes td{text-align:left;padding:6px 8px;height:auto;font-size:11px;line-height:1.7}
+.sheet .sign{display:grid;grid-template-columns:repeat(4,1fr);margin-top:22px;font-size:15px}
+
+/* settings */
+.cards2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.tbl{overflow-x:auto}
+.tbl table{border-collapse:collapse;width:100%;font-size:14px}
+.tbl th{font-size:12px;color:var(--muted);font-weight:500;text-align:left;padding:6px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl td input[type=text]{width:100%}
+.tbl .w-s{width:64px}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:var(--r)}
+
+/* modal + toast */
+.scrim{position:fixed;inset:0;background:rgba(10,20,18,.45);display:grid;place-items:center;z-index:30;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.modal{background:var(--surface);border-radius:14px;max-width:440px;width:100%;padding:18px;display:flex;flex-direction:column;gap:14px;max-height:100%;overflow:auto}
+.modal h3{margin:0;font-size:17px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;z-index:40;max-width:calc(100% - 32px)}
+@media (prefers-reduced-motion:no-preference){.toast{animation:up .18s ease-out}@keyframes up{from{transform:translate(-50%,8px);opacity:0}}}
+</style>
+
+<header class="top"><div class="wrap">
+  <div class="brand"><b>兼職藥師排班系統</b><small id="deptLine">藥劑課</small></div>
+  <div class="month">
+    <button class="iconbtn" id="prevM" aria-label="上個月">‹</button>
+    <span class="lbl" id="monthLbl"></span>
+    <button class="iconbtn" id="nextM" aria-label="下個月">›</button>
+  </div>
+</div></header>
+<nav class="tabbar"><div class="wrap tabs" id="tabs"></div></nav>
+<main class="wrap" id="app"><div class="empty">載入排班資料中…</div></main>
+<div id="layer"></div>
+
+<script>
+(function(){
+const DEFAULT_CONFIG={
+  deptName:'員基藥劑課',deptCode:'53690',title:'藥劑課兼職藥師入薪申請表',
+  rateBefore:400,rateAfter:500,
+  headNote:'填表說明：每週需備註 1例(R) 及 1休(F)',
+  notes:['請檢附每月預排班表','時薪單價：取照前400元/時、取照後500元/時','當月依預排班表時數預撥薪資，次月結算預排與實際出勤時數有差異者，請每月10號前提出「時數紀錄單」，以利進行增減時數薪資調整'],
+  signers:['行政副院長','人資承辦','主管','製表人'],
+  shifts:[
+    {id:'s1',code:'早',name:'早班',start:'08:00',end:'12:00',brk:0},
+    {id:'s2',code:'午',name:'午班',start:'13:00',end:'17:00',brk:0},
+    {id:'s3',code:'全',name:'全日班',start:'08:00',end:'17:00',brk:60},
+    {id:'s4',code:'晚',name:'晚班',start:'17:30',end:'21:30',brk:0}
+  ],
+  locked:{},monthCap:100,
+  staffTitle:'排 OFF 與上班日',staffSub:'選好班別或 OFF 再點日期；沒排的日子由主管排班',staffGuide:''
+};
+const WD='日一二三四五六';
+/* ===== 嵌在預約系統（index.html）裡：透過 window.parent.PTHOST 取得登入者與資料庫，本頁不自行連線 =====
+   資料集合：ptconfig（設定）、ptstaff（兼職人員）、ptsched（班表）、ptmyshifts（個人常用班別） */
+const HOST=(window.parent&&window.parent!==window)?window.parent.PTHOST:null;
+const PCOL={config:'ptconfig',staff:'ptstaff',sched:'ptsched',myshifts:'ptmyshifts'};
+function wrapDb(db){
+  // Firestore 在主頁面載入，只接受主頁面建立的物件，寫入前先轉成主頁面的物件
+  const P=window.parent,cv=o=>P.JSON.parse(JSON.stringify(o));
+  const ref=r=>({id:r.id,set:o=>r.set(cv(o)),update:o=>r.update(cv(o)),delete:()=>r.delete(),onSnapshot:(a,b)=>r.onSnapshot(a,b)});
+  const path=p=>{const i=p.indexOf('/');return PCOL[p.slice(0,i)]+p.slice(i)};
+  return{doc:p=>ref(db.doc(path(p))),collection:n=>{const c=db.collection(PCOL[n]);return{doc:id=>ref(id?c.doc(id):c.doc()),onSnapshot:(a,b)=>c.onSnapshot(a,b),where:(f,o,v)=>c.where(f,o,v)}}};
+}
+const DL={save:async({filename,data})=>{const b=data instanceof Blob?data:new Blob([data]);const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=filename;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000)}};
+const hostUser=()=>HOST&&HOST.user?HOST.user():null;
+const myCode=()=>{const u=hostUser();return u?String(u.code):''};
+const now=new Date();
+const S={db:null,user:null,dl:undefined,demo:false,admin:false,ready:false,err:'',
+  config:null,staff:[],sched:{},ym:ymOf(now.getFullYear(),now.getMonth()+1),
+  tab:'mine',tool:null,anchor:null,draft:null,myShifts:{},addShift:null,custom:{st:'09:00',en:'13:00',brk:0},me:'',fill:{shift:'',skipWk:true},unsubSched:null};
+try{S.me=localStorage.getItem('pt-me')||''}catch(e){}
+const isDenied=e=>e&&(e.code==='permission_denied'||e.code==='permission-denied');
+
+function ymOf(y,m){return y+'-'+String(m).padStart(2,'0')}
+function ymParts(ym){const[a,b]=ym.split('-').map(Number);return{y:a,m:b}}
+function dim(ym){const{y,m}=ymParts(ym);return new Date(y,m,0).getDate()}
+function dow(ym,d){const{y,m}=ymParts(ym);return new Date(y,m-1,d).getDay()}
+function roc(ym){const{y,m}=ymParts(ym);return (y-1911)+'年'+m+'月'}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function toMin(t){const[a,b]=(t||'0:0').split(':').map(Number);return a*60+b}
+function hrs(st,en,brk){let m=toMin(en)-toMin(st);if(m<=0)m+=1440;m-=Number(brk)||0;return Math.max(0,Math.round(m/60*100)/100)}
+function fmtH(h){return (Math.round(h*100)/100).toString()}
+const cfg=()=>S.config||DEFAULT_CONFIG;
+const myShifts=sid=>(S.myShifts[sid]||[]);
+const shiftById=(id,sid)=>cfg().shifts.find(s=>s.id===id)||(sid?myShifts(sid):Object.values(S.myShifts).flat()).find(s=>s.id===id);
+const locked=()=>!!(cfg().locked||{})[S.ym];
+const activeStaff=()=>S.staff.filter(s=>s.active!==false).sort((a,b)=>(a.code||'').localeCompare(b.code||'')||(a.name||'').localeCompare(b.name||''));
+const entry=(sid,d)=>{if(S.draft&&S.draft.sid===sid&&S.draft.ym===S.ym)return S.draft.days['d'+d]||null;const doc=S.sched[sid];return doc?doc['d'+d]||null:null};
+function isBefore(st,d){ // hours paid at pre-license rate?
+  if(st.lic==='no')return true;
+  if(st.lic==='date'&&st.licDate){return S.ym+'-'+String(d).padStart(2,'0')<st.licDate}
+  return false;
+}
+function totals(st){
+  let before=0,after=0,R=0,F=0;
+  for(let d=1;d<=dim(S.ym);d++){const e=entry(st.id,d);if(!e)continue;
+    if(e.t==='w'){isBefore(st,d)?before+=e.h:after+=e.h}else if(e.t==='R'||e.t==='OFF')R++;else if(e.t==='F')F++;}
+  const c=cfg();return{before,after,hours:before+after,amount:before*c.rateBefore+after*c.rateAfter,R,F};
+}
+function shiftEntry(sh){return{t:'w',s:sh.id,code:sh.code,st:sh.start,en:sh.end,h:hrs(sh.start,sh.end,sh.brk)}}
+
+/* ---------- data layer ---------- */
+async function boot(){
+  window.addEventListener('hashchange',route);route();
+  const u=hostUser(),raw=HOST&&HOST.db?HOST.db():null;
+  if(!u){S.err='請從預約系統登入後，再進入「兼職排班」。';render();return}
+  if(!raw){S.err='目前無法連線到資料庫，兼職排班需要連線資料庫才能使用。';render();return}
+  const db=wrapDb(raw);S.db=db;S.admin=!!u.admin;
+  const t=setTimeout(()=>{if(!S.ready){S.err='連線逾時，請重新整理頁面。';render()}},10000);
+  let gotC=false,gotS=false;
+  const done=()=>{if(gotC&&gotS&&!S.ready){S.ready=true;clearTimeout(t)}render()};
+  const fail=e=>{clearTimeout(t);S.err=isDenied(e)?'讀取資料失敗：資料庫尚未開放兼職排班的資料（請管理者到 Firebase 主控台更新存取規則）。':'讀取資料失敗：'+(e&&e.message||'請稍後再試');render()};
+  db.doc('config/main').onSnapshot(s=>{S.config=s.exists?Object.assign({},DEFAULT_CONFIG,s.data()):null;gotC=true;done()},fail);
+  db.collection('myshifts').onSnapshot(q=>{const o={};q.docs.forEach(d=>{const v=d.data();o[d.id]=Array.isArray(v.shifts)?v.shifts:[]});S.myShifts=o;render()},()=>{});
+  db.collection('staff').onSnapshot(q=>{S.staff=q.docs.map(d=>Object.assign({id:d.id},d.data()));gotS=true;done()},fail);
+  subSched();
+  S.dl=DL;
+}
+function subSched(){
+  if(S.demo)return;
+  if(S.unsubSched)S.unsubSched();
+  S.sched={};
+  S.unsubSched=S.db.collection('sched').where('month','==',S.ym).onSnapshot(q=>{
+    const o={};q.docs.forEach(d=>{const v=d.data();o[v.staffId]=v});S.sched=o;render();
+  },e=>toast('班表讀取失敗'));
+}
+function startDemo(){
+  S.demo=true;S.admin=true;S.ready=true;S.dl=null;S.config=JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+  S.staff=[
+    {id:'x1',code:'P001',name:'範例・王小明',mode:'self',lic:'yes',active:true},
+    {id:'x2',code:'P002',name:'範例・林佳怡',mode:'off',lic:'date',licDate:S.ym+'-16',active:true},
+    {id:'x3',code:'P003',name:'範例・陳大華',mode:'off',lic:'no',active:true}];
+  const sh=DEFAULT_CONFIG.shifts,n=dim(S.ym),a={},b={},c={};
+  for(let d=1;d<=n;d++){const w=dow(S.ym,d);
+    if(w===2||w===4)a['d'+d]=shiftEntry(sh[3]);
+    if(w===0||w===6){}else if(d%7===2)b['d'+d]={t:'OFF'};else b['d'+d]=shiftEntry(sh[d%3===0?2:0]);
+    if(w===3)c['d'+d]={t:'OFF'};else if(w===0||w===6){}else if(w!==6&&d<20)c['d'+d]=shiftEntry(sh[1]);}
+  S.myShifts={x1:[{id:'p1',code:'夜',name:'夜診支援',start:'18:00',end:'21:00',brk:0}]};
+  S.sched={x1:Object.assign({month:S.ym,staffId:'x1',status:'draft'},a),x2:Object.assign({month:S.ym,staffId:'x2',status:'sent'},b),x3:Object.assign({month:S.ym,staffId:'x3',status:'draft'},c)};
+  if(!S.me)S.me='x1';
+  claude_dl_probe();render();
+}
+function claude_dl_probe(){S.dl=DL}
+
+async function saveDays(sid,patch,status){
+  if(S.demo){const doc=S.sched[sid]||(S.sched[sid]={month:S.ym,staffId:sid,status:'draft'});Object.assign(doc,patch);if(status)doc.status=status;render();return true}
+  const ref=S.db.doc('sched/'+S.ym+'__'+sid);
+  const body=Object.assign({},patch,{updatedAt:Date.now()});if(status)body.status=status;
+  try{
+    if(S.sched[sid])await ref.update(body);
+    else await ref.set(Object.assign({month:S.ym,staffId:sid,status:status||'draft'},body));
+    return true;
+  }catch(e){toast('儲存失敗：'+(isDenied(e)?'沒有編輯權限':'請稍後再試'));return false}
+}
+async function saveMyShifts(sid,list){
+  if(S.demo){S.myShifts[sid]=list;render();return true}
+  try{await S.db.doc('myshifts/'+sid).set({staffId:sid,shifts:list,updatedAt:Date.now()});return true}catch(e){toast('常用班別儲存失敗');return false}
+}
+async function updateMyShift(id,v){
+  const me=S.staff.find(x=>x.id===S.me);if(!me)return;
+  const list=myShifts(S.me).map(x=>x.id===id?Object.assign({},x,v,{code:v.name.slice(0,2),fromId:null}):x);
+  const upd=list.find(x=>x.id===id);
+  if(!(await saveMyShifts(S.me,list)))return;
+  S.addShift=null;
+  let msg='已更新「'+upd.name+'」';
+  if(!meRO(me)){const patch={};for(let d=1;d<=dim(S.ym);d++){const e=entry(me.id,d);if(e&&e.t==='w'&&e.s===id)patch['d'+d]=shiftEntry(upd)}
+    const n=Object.keys(patch).length;
+    if(n){if(cap()&&hoursWith(me,patch)>cap())msg+='；本月已排的班套用後會超過上限，所以沒有改，請自行調整';
+      else{withAutoOff(me,patch);Object.assign(ensureDraft(me.id),patch);msg+=`，本月 ${n} 天已一併更新，記得暫存或送出`}}}
+  render();toast(msg);
+}
+async function saveConfig(patch){
+  const next=Object.assign({},cfg(),patch);
+  if(S.demo){S.config=next;render();return true}
+  try{await S.db.doc('config/main').set(next);return true}catch(e){toast('設定儲存失敗：只有主管可以修改');return false}
+}
+async function saveStaff(id,data){
+  if(S.demo){const i=S.staff.findIndex(s=>s.id===id);if(i>=0)S.staff[i]=Object.assign({id},data);else S.staff.push(Object.assign({id:id||('x'+Date.now())},data));render();return true}
+  try{const ref=id?S.db.doc('staff/'+id):S.db.collection('staff').doc();await ref.set(data);return true}catch(e){toast('人員儲存失敗：只有主管可以修改');return false}
+}
+async function delStaff(id){
+  if(S.demo){S.staff=S.staff.filter(s=>s.id!==id);render();return}
+  try{await S.db.doc('staff/'+id).delete()}catch(e){toast('刪除失敗')}
+}
+
+/* ---------- routing & chrome ---------- */
+const TABS=[['mine','我的班表',false],['plan','主管排班',true],['report','入薪申請表',true],['setup','班別與人員',true]];
+function route(){const h=location.hash.slice(1);S.tab=TABS.some(t=>t[0]===h)?h:'mine';render()}
+function chrome(){
+  document.getElementById('monthLbl').textContent=roc(S.ym)+'（'+ymParts(S.ym).y+'）';
+  document.getElementById('deptLine').textContent=cfg().deptName+' · 部門代號 '+cfg().deptCode;
+  const tabs=TABS.filter(t=>!t[2]||S.admin);
+  if(!tabs.some(t=>t[0]===S.tab))S.tab='mine';
+  document.getElementById('tabs').innerHTML=tabs.map(t=>`<a href="#${t[0]}" ${t[0]===S.tab?'aria-current="page"':''}>${t[1]}</a>`).join('');
+}
+async function shiftMonth(k){if(S.draft&&!(await flushDraft()))return;S.anchor=null;const{y,m}=ymParts(S.ym);const d=new Date(y,m-1+k,1);S.ym=ymOf(d.getFullYear(),d.getMonth()+1);if(S.demo){startDemo()}else{subSched();render()}}
+document.getElementById('prevM').onclick=()=>shiftMonth(-1);
+document.getElementById('nextM').onclick=()=>shiftMonth(1);
+
+function render(){
+  chrome();
+  const app=document.getElementById('app');
+  if(S.err){app.innerHTML=`<div class="empty">${esc(S.err)}</div>`;return}
+  if(!S.ready){app.innerHTML=`<div class="empty">載入排班資料中…</div>`;return}
+  let h='';
+  if(S.demo)h+=`<div class="banner demo">這是示範資料（三位範例人員）。</div>`;
+  if(locked())h+=`<div class="banner lock">${roc(S.ym)}班表已由主管鎖定，員工無法再修改。</div>`;
+  h+=({mine:viewMine,plan:viewPlan,report:viewReport,setup:viewSetup}[S.tab])();
+  const keepScroll=[...app.querySelectorAll('[data-keep]')].map(el=>[el.dataset.keep,el.scrollLeft]);
+  app.innerHTML=h;
+  keepScroll.forEach(([k,x])=>{const el=app.querySelector(`[data-keep="${k}"]`);if(el)el.scrollLeft=x});
+}
+
+/* ---------- 我的班表 ---------- */
+// Staff edits stay in a local draft until 暫存 / 送出.
+function hasDraft(sid){return !!(S.draft&&S.draft.sid===sid&&S.draft.ym===S.ym)}
+const MODES={off:'1. 只選 OFF，其餘天數由主管排班',self:'2. 自排 OFF＋上班日期及時數'};
+function effMode(st){return 'self'}
+function ensureDraft(sid){if(!hasDraft(sid)){const days={},doc=S.sched[sid];for(let d=1;d<=dim(S.ym);d++){days['d'+d]=doc&&doc['d'+d]||null}S.draft={sid,ym:S.ym,days,note:doc&&doc.note||'',mode:doc&&doc.mode||''}}return S.draft.days}
+function draftPatch(){const p={note:S.draft.note||''};if(S.draft.mode)p.mode=S.draft.mode;for(let d=1;d<=dim(S.draft.ym);d++)p['d'+d]=S.draft.days['d'+d]||null;return p}
+async function flushDraft(status){
+  if(!S.draft)return true;const{sid,ym}=S.draft;
+  if(ym!==S.ym)return true;
+  const ok=await saveDays(sid,draftPatch(),status);if(ok)S.draft=null;render();return ok;
+}
+const cap=()=>Number(cfg().monthCap)||0;
+function hoursWith(st,patch){let h=0;for(let d=1;d<=dim(S.ym);d++){const k='d'+d,e=k in patch?patch[k]:entry(st.id,d);if(e&&e.t==='w')h+=e.h}return Math.round(h*100)/100}
+// When scheduled hours reach the monthly cap, every empty weekday becomes OFF (marked auto);
+// if hours drop below the cap again, those auto OFFs are removed.
+function autoOffPatch(st,patch){
+  const c=cap(),n=dim(S.ym),get=d=>{const k='d'+d;return k in patch?patch[k]:entry(st.id,d)};
+  let h=0;for(let d=1;d<=n;d++){const e=get(d);if(e&&e.t==='w')h+=e.h}
+  const full=c&&h>=c-1e-9,out={};
+  for(let d=1;d<=n;d++){const e=get(d);
+    if(full){if(!e&&dayOpen(d))out['d'+d]={t:'OFF',auto:true}}
+    else if(e&&e.t==='OFF'&&e.auto)out['d'+d]=null}
+  return out;
+}
+function withAutoOff(st,patch){const extra=autoOffPatch(st,patch),added=Object.values(extra).filter(Boolean).length;Object.assign(patch,extra);
+  if(added)setTimeout(()=>toast(`已達 ${cap()} 小時，其餘 ${added} 個空白日自動帶出 OFF`),50);return patch}
+function overCap(st,patch){const c=cap();if(!c)return false;const after=hoursWith(st,patch);if(after>c&&after>hoursWith(st,{})){toast(`超過每月上限 ${c} 小時（套用後會是 ${fmtH(after)} 小時）`);return true}return false}
+
+function viewMine(){
+  const list=activeStaff();
+  if(!list.length)return `<div class="empty">主管還沒有建立兼職人員名單。${S.admin?'請到「班別與人員」新增人員。':''}</div>`;
+  const own=list.find(s=>String(s.code||'').trim()===myCode());
+  if(!S.admin)S.me=own?own.id:'';else if(!list.some(s=>s.id===S.me))S.me=own?own.id:'';
+  const me=list.find(s=>s.id===S.me);
+  if(!S.admin&&!me)return `<div class="empty">你（員工編號 ${esc(myCode())}）還不在兼職人員名單中，請洽主管把你加入。</div>`;
+  let h=`<section class="panel"><div class="me">${S.admin?`<label class="f">我是（主管可切換人員）
+    <select id="meSel"><option value="">選擇人員</option>${list.map(s=>`<option value="${s.id}" ${s.id===S.me?'selected':''}>${esc(s.code)}　${esc(s.name)}</option>`).join('')}</select></label>`:`<div><span class="muted small">我是</span><div style="font-size:18px;font-weight:700">${esc(me.code)}　${esc(me.name)}</div></div>`}`;
+  if(me){const t=totals(me),doc=S.sched[me.id],c=cap(),pct=c?Math.min(100,t.hours/c*100):0;
+    h+=`<div class="stat"><span class="muted small">本月排班時數</span><b class="num">${fmtH(t.hours)}${c?`<span class="capof"> / ${c}</span>`:''}</b><span class="small muted">OFF ${t.R} 天</span></div></div>
+    ${c?`<div class="capbar ${t.hours>=c?'full':''}" role="progressbar" aria-valuemin="0" aria-valuemax="${c}" aria-valuenow="${t.hours}"><span style="width:${pct}%"></span></div>`:''}
+    <div class="row">${statusPill(doc)}${hasDraft(me.id)?'<span class="pill draft">有未暫存的變更</span>':''}</div>`;
+  }else h+=`</div>`;
+  h+=`</section>`;
+  if(!me)return h;
+  const lk=locked(),sent=!hasDraft(me.id)&&S.sched[me.id]&&S.sched[me.id].status==='sent',ro=lk||sent;
+  h+=`<section class="panel ${ro?'':'has-x'}">${ro?'':`<button class="px" data-act="clearAll" data-label="✕" title="全部清除" aria-label="全部清除">✕</button>`}<h2>${esc(cfg().staffTitle||'排 OFF 與上班日')}<small>${sent?'已送出；要調整請按「修改」':esc(cfg().staffSub||'')}</small></h2>${cfg().staffGuide?`<div class="guide">${esc(cfg().staffGuide).replace(/\n/g,'<br>')}</div>`:''}`;
+  if(!ro)h+=toolsHtml(effMode(me),me.id);
+  h+=calendarHtml(me,ro);
+  const w=weekCheck(me);if(w)h+=`<span class="small muted">${w}</span>`;
+  const note=hasDraft(me.id)?S.draft.note:(S.sched[me.id]&&S.sched[me.id].note)||'';
+  h+=`<label class="f">備註<textarea id="myNote" rows="2" maxlength="300" placeholder="例如：11/20 下午要上課、希望集中排早班…" ${ro?'readonly':''}>${esc(note)}</textarea></label>`;
+  h+=`<div class="actions">`;
+  if(lk)h+=`<span class="small muted">本月已鎖定，無法修改。</span>`;
+  else if(sent)h+=`<span></span><div class="row"><button class="btn primary" data-act="reopen">修改</button></div>`;
+  else h+=`<button class="btn danger" data-act="clearAll" data-label="全部清除">全部清除</button><div class="row"><button class="btn" data-act="saveDraft" ${hasDraft(me.id)?'':'disabled'}>暫存</button><button class="btn primary" data-act="submit">送出</button></div>`;
+  h+=`</div></section>`;
+  return h;
+}
+function meRO(me){const doc=S.sched[me.id];return locked()||(!hasDraft(me.id)&&doc&&doc.status==='sent')}
+function statusPill(doc){if(!doc)return `<span class="pill none">尚未填寫</span>`;return doc.status==='sent'?`<span class="pill sent">已送出</span>`:`<span class="pill draft">暫存中</span>`}
+function shiftLbl(s){return `<span>${esc(s.name)}</span><small class="num">${s.start}–${s.end} · ${fmtH(hrs(s.start,s.end,s.brk))}h</small>`}
+function myToolHtml(s,selectable){const T=S.tool;
+  return `<div class="toolwrap">${selectable?`<button class="tool mine" data-act="tool" data-v="s:${s.id}" aria-pressed="${T==='s:'+s.id}">${shiftLbl(s)}<em class="mytag">我的</em></button>`:`<div class="tool mine">${shiftLbl(s)}<em class="mytag">我的</em></div>`}<button class="x" data-act="rmMyShift" data-label="✕" data-id="${s.id}" aria-label="刪除常用班別 ${esc(s.name)}">✕</button><button class="ed" data-act="editMyShift" data-id="${s.id}" aria-label="編輯常用班別 ${esc(s.name)}">編輯</button></div>`}
+function inMine(sid,s){return myShifts(sid).some(m=>m.fromId===s.id||(m.start===s.start&&m.end===s.end&&(m.brk||0)===(s.brk||0)&&m.name===s.name))}
+function addShiftHtml(){
+  const A=S.addShift;if(!A)return '';const hh=hrs(A.st,A.en,A.brk);
+  const ed=!!A.editId,picks=ed?[]:cfg().shifts.filter(s=>!inMine(S.me,s));
+  return `${picks.length?`<div class="custom picks"><span class="small muted">從主管的班別挑選，點一下就加入：</span><div class="tools">${picks.map(s=>`<button class="tool" data-act="pickDept" data-id="${s.id}">${shiftLbl(s)}</button>`).join('')}</div></div>`:''}<div class="custom"><span class="small muted" style="flex-basis:100%">${ed?`編輯「${esc(A.orig)}」：`:picks.length?'或自己輸入新的班別：':'輸入新的班別：'}</span><label class="f">班別名稱<input type="text" id="psName" value="${esc(A.name)}" placeholder="例如：週三下午" maxlength="12" style="width:150px"></label>
+      <label class="f">上班<input type="time" id="psSt" value="${A.st}"></label><label class="f">下班<input type="time" id="psEn" value="${A.en}"></label>
+      <label class="f">休息（分）<input type="number" id="psBrk" min="0" step="10" value="${A.brk}" style="width:80px"></label>
+      <span class="small muted">時數 <b class="num">${fmtH(hh)}</b> 小時</span>
+      <div class="row"><button class="btn primary" data-act="saveMyShift">${ed?'儲存修改':'儲存並加入班別'}</button><button class="btn" data-act="cancelMyShift">取消</button></div></div>`}
+function toolsHtml(mode,sid){
+  const T=S.tool,mine=myShifts(sid);
+  let h=`<div class="tools">`;
+  cfg().shifts.filter(s=>!inMine(sid,s)).forEach(s=>{h+=`<div class="toolwrap"><button class="tool" data-act="tool" data-v="s:${s.id}" aria-pressed="${T==='s:'+s.id}">${shiftLbl(s)}</button><button class="star" data-act="pickDept" data-id="${s.id}" title="加入我的常用班別" aria-label="把 ${esc(s.name)} 加入我的常用班別">☆</button></div>`});
+  mine.forEach(s=>h+=myToolHtml(s,true));
+  h+=`<button class="tool off-R" data-act="tool" data-v="OFF" aria-pressed="${T==='OFF'}"><span class="chip OFF">OFF</span>排休</button>`;
+  if(!S.addShift)h+=`<button class="tool add" data-act="addMyShift"><span>＋ 新增常用班別</span></button>`;
+  h+=`</div>${addShiftHtml()}
+      <div class="hint">點一天套用；☆ 加入我的常用班別，✕ 刪除；先點起始日，再按住 <kbd>Shift</kbd> 點結束日，可一次套用整段日期。週六、週日不開放選擇。</div>`;
+  return h;
+}
+function chipHtml(e,mine){
+  if(!e)return '';
+  if(e.t==='R')return `<span class="chip R">R 例假</span>`;
+  if(e.t==='OFF')return e.auto?`<span class="chip OFF auto" title="已達每月時數上限，自動帶出">OFF 自動</span>`:`<span class="chip OFF">OFF 排休</span>`;
+  if(e.t==='F')return `<span class="chip F">F 休息</span>`;
+  return `<span class="chip w ${mine?'':'mgr'}">${esc(e.code||'班')} <span class="h">${fmtH(e.h)}h</span><span class="t num"><br>${e.st}–${e.en}</span></span>`;
+}
+function calendarHtml(me,ro){
+  const n=dim(S.ym),first=dow(S.ym,1),todayYm=ymOf(now.getFullYear(),now.getMonth()+1);
+  let h=`<div class="cal">`+[...WD].map((w,i)=>`<div class="dh ${i===0?'sun':i===6?'sat':''}">${w}</div>`).join('');
+  for(let i=0;i<first;i++)h+=`<div class="day blank"></div>`;
+  for(let d=1;d<=n;d++){const w=dow(S.ym,d),e=entry(me.id,d);
+    const mine=effMode(me)!=='off'||!e||e.t!=='w';
+    const nowk=!dayOpen(d),live=!ro&&!nowk;
+    h+=`<div class="day ${w===0?'sun':w===6?'sat':''} ${nowk?'nowk':''} ${live?'live':''} ${S.anchor&&S.anchor.sid===me.id&&S.anchor.d===d?'anchor':''} ${S.ym===todayYm&&d===now.getDate()?'today':''}" ${live?`data-act="day" data-d="${d}" role="button" tabindex="0"`:''} aria-label="${d}日">
+      <span class="dn">${d}</span>${chipHtml(e,mine)}${live&&e&&mine?`<button class="x" data-act="rmday" data-d="${d}" aria-label="刪除${d}日">✕</button>`:''}</div>`;}
+  return h+`</div>`;
+}
+function dayOpen(d){const w=dow(S.ym,d);return w!==0&&w!==6}
+function weekCheck(me){
+  return '';
+  const n=dim(S.ym);let miss=[];
+  for(let d=1;d<=n;){const w=dow(S.ym,d);const end=Math.min(n,d+(6-w));let r=false,f=false;
+    for(let k=d;k<=end;k++){const e=entry(me.id,k);if(e&&(e.t==='R'||e.t==='OFF'))r=true;}
+    if(end-d>=6&&!r)miss.push(`${d}–${end}日`);d=end+1;}
+  return miss.length?`提醒：${miss.join('、')} 這週還沒有排 OFF`:'';
+}
+function rangeDays(a,b,filter){const lo=Math.min(a,b),hi=Math.max(a,b),out=[];for(let d=lo;d<=hi;d++)if(!filter||filter(d))out.push(d);return out}
+function applyDay(me,d,shift){
+  if(!S.tool){toast(effMode(me)==='off'?'先選上方的「OFF 排休」':'先選上方的班別');return}
+  const isRange=shift&&S.anchor&&S.anchor.sid===me.id&&S.anchor.d!==d;
+  const days=isRange?rangeDays(S.anchor.d,d,dayOpen):[d];
+  let base;
+  if(S.tool==='OFF'||S.tool==='F')base={t:S.tool};
+  else if(S.tool==='custom'){const c=S.custom;base={t:'w',s:null,code:'自訂',st:c.st,en:c.en,h:hrs(c.st,c.en,c.brk)}}
+  else{const sh=shiftById(S.tool.slice(2),me.id);if(!sh)return;base=shiftEntry(sh)}
+  const patch={};
+  days.forEach(k=>{const cur=entry(me.id,k);let val=base;
+    if(!isRange&&cur&&cur.t===base.t&&(base.t!=='w'||cur.s===base.s))val=null; // tap again = toggle off
+    if(effMode(me)==='off'&&cur&&cur.t==='w'&&val===null)return;
+    patch['d'+k]=val});
+  if(overCap(me,patch))return;
+  withAutoOff(me,patch);
+  const dd=ensureDraft(me.id);Object.assign(dd,patch);S.anchor={sid:me.id,d};render();
+  if(isRange)toast(`已套用 ${Object.keys(patch).length} 天，記得暫存或送出`);
+}
+function removeDay(me,d){const cur=entry(me.id,d);if(cur&&cur.auto){toast(`已達 ${cap()} 小時上限，空白日固定為 OFF；先刪掉一個班才能改`);return}const p=withAutoOff(me,{['d'+d]:null});Object.assign(ensureDraft(me.id),p);render()}
+function clearAll(me){
+  const dd=ensureDraft(me.id);
+  for(let d=1;d<=dim(S.ym);d++){const e=dd['d'+d];if(effMode(me)==='off'&&e&&e.t==='w')continue;dd['d'+d]=null}
+  render();toast(effMode(me)==='off'?'已清除你標記的休假（主管排的班保留）':'已全部清除，按「暫存」或「送出」才會生效');
+}
+
+/* ---------- 主管排班 ---------- */
+function viewPlan(){
+  const list=activeStaff(),n=dim(S.ym),sh=cfg().shifts;
+  if(!list.length)return `<div class="empty">還沒有人員。請先到「班別與人員」新增兼職人員。</div>`;
+  const sent=list.filter(s=>S.sched[s.id]&&S.sched[s.id].status==='sent').length;
+  let h=`<section class="panel"><div class="row" style="justify-content:space-between"><h2>${roc(S.ym)}排班總表<small>${sent}/${list.length} 人已送出</small></h2>
+    <div class="row"><button class="btn danger" data-act="mclearAll" data-label="清除本月全部排班">清除本月全部排班</button><button class="btn ${locked()?'':'primary'}" data-act="lock">${locked()?'解除鎖定':'鎖定本月，停止員工修改'}</button></div></div>
+    <div class="custom"><label class="f">自動補班別<select id="fillShift">${sh.map(s=>`<option value="${s.id}" ${S.fill.shift===s.id?'selected':''}>${esc(s.name)} ${s.start}–${s.end}</option>`).join('')}</select></label>
+    <label class="row small" style="gap:6px"><input type="checkbox" id="fillWk" ${S.fill.skipWk?'checked':''}>跳過週六日</label>
+    <button class="btn" data-act="fill">幫所有人填滿空白日</button>
+    <span class="small muted">只填沒有排班也沒有休假的日子，達到每月上限就停止；填完可再逐格調整。</span></div>
+    <div class="hint">點一格編輯；先點一格，再按住 <kbd>Shift</kbd> 點同一列的另一格，可一次設定整段日期。主管可排週六、週日。</div>
+    <div class="gridwrap" data-keep="plan"><table class="plan"><thead><tr><th class="nm">人員</th>`;
+  for(let d=1;d<=n;d++){const w=dow(S.ym,d);h+=`<th class="dcol ${w===0?'sun':w===6?'sat':''}"><span class="num">${d}</span><br><small>${WD[w]}</small></th>`}
+  h+=`<th class="tot">時數</th><th class="tot">金額</th></tr></thead><tbody>`;
+  list.forEach(st=>{const t=totals(st);
+    h+=`<tr><td class="nm"><b>${esc(st.name)}</b><div class="sub">${statusPill(S.sched[st.id])}</div>${S.sched[st.id]&&S.sched[st.id].note?`<div class="nnote" title="${esc(S.sched[st.id].note)}">備註：${esc(S.sched[st.id].note)}</div>`:''}${t.hours||Object.keys(S.sched[st.id]||{}).some(k=>/^d\d+$/.test(k)&&S.sched[st.id][k])?`<button class="linkbtn" data-act="mclearRow" data-s="${st.id}" data-label="清除此人本月排班">清除此人本月排班</button>`:''}</td>`;
+    for(let d=1;d<=n;d++){const w=dow(S.ym,d),e=entry(st.id,d);
+      let c='';if(e){c=e.t==='w'?`<span class="w">${esc((e.code||'班').slice(0,2))}<small>${fmtH(e.h)}</small></span>`:`<span class="${e.t}">${e.t}</span>`}
+      h+=`<td class="${w===0?'sun':w===6?'sat':''}"><button class="cellbtn ${S.anchor&&S.anchor.sid===st.id&&S.anchor.d===d?'anchor':''}" data-act="cell" data-s="${st.id}" data-d="${d}" aria-label="${esc(st.name)} ${d}日">${c}</button>${e?`<button class="cx" data-act="mclear" data-s="${st.id}" data-d="${d}" aria-label="清除${esc(st.name)} ${d}日">✕</button>`:''}</td>`}
+    h+=`<td class="tot ${cap()&&t.hours>cap()?'over':''}">${fmtH(t.hours)}</td><td class="tot">${t.amount.toLocaleString()}</td></tr>`});
+  return h+`</tbody></table></div></section>`;
+}
+function openCell(sid,d,shift){
+  const st=S.staff.find(s=>s.id===sid),w=dow(S.ym,d);
+  const days=shift&&S.anchor&&S.anchor.sid===sid&&S.anchor.d!==d?rangeDays(S.anchor.d,d):[d];
+  S.anchor={sid,d};
+  const e=days.length===1?entry(sid,d):null,M=ymParts(S.ym).m;
+  const title=days.length===1?`${M}/${d}（${WD[w]}）`:`${M}/${days[0]}–${M}/${days[days.length-1]}，共 ${days.length} 天`;
+  const c=e&&e.t==='w'?e:{st:'09:00',en:'13:00'};
+  modal(`<h3>${esc(st.name)} · ${title}</h3>
+    <div class="tools">${cfg().shifts.concat(myShifts(sid)).map(s=>`<button class="tool ${s.id.startsWith('p')?'mine':''}" data-act="mset" data-v="s:${s.id}" aria-pressed="${!!(e&&e.s===s.id)}"><span>${esc(s.name)}</span><small class="num">${s.start}–${s.end} · ${fmtH(hrs(s.start,s.end,s.brk))}h</small></button>`).join('')}</div>
+    <div class="custom"><label class="f">上班<input type="time" id="mSt" value="${c.st}"></label><label class="f">下班<input type="time" id="mEn" value="${c.en}"></label><label class="f">休息（分）<input type="number" id="mBrk" value="0" min="0" step="10" style="width:80px"></label><button class="btn" data-act="mset" data-v="custom">套用自訂</button></div>
+    <div class="row"><button class="tool off-R" data-act="mset" data-v="OFF" aria-pressed="${!!(e&&e.t==='OFF')}"><span class="chip OFF">OFF</span>排休</button><button class="btn danger" data-act="mset" data-v="clear">清除這天</button><button class="btn" data-act="close" style="margin-left:auto">關閉</button></div>`,{sid,days});render();
+}
+async function fillEmpty(){
+  const sh=shiftById(document.getElementById('fillShift').value);if(!sh)return;
+  const skip=document.getElementById('fillWk').checked,n=dim(S.ym);let cnt=0;
+  for(const st of activeStaff()){const p={};
+    for(let d=1;d<=n;d++){const w=dow(S.ym,d);if(skip&&(w===0||w===6))continue;if(!entry(st.id,d)){const v=shiftEntry(sh);if(cap()&&hoursWith(st,p)+v.h>cap())break;p['d'+d]=v}}
+    const k=Object.keys(p).length;if(k){cnt+=k;await saveDays(st.id,withAutoOff(st,p))}}
+  toast(cnt?`已補上 ${cnt} 個班（不超過每月 ${cap()||'∞'} 小時）`:'沒有空白日需要補，或已達時數上限');
+}
+
+/* ---------- 報表 ---------- */
+function viewReport(){
+  const c=cfg(),list=activeStaff(),n=dim(S.ym);
+  const rows=list.slice();while(rows.length<9)rows.push(null);
+  const dayCls=d=>d>n?'nod':(w=>w===0?'wk0':w===6?'wk6':'')(dow(S.ym,d));
+  let h=`<section class="panel"><div class="row" style="justify-content:space-between"><h2>${roc(S.ym)}${esc(c.title)}<small>格式與紙本申請表相同</small></h2>
+    <button class="btn primary" data-act="xlsx" ${S.dl?'':'disabled'}>匯出 Excel</button></div>
+    
+    <div class="sheetwrap" data-keep="sheet"><div class="sheet">
+    <div class="hd"><div>部門名稱：${esc(c.deptName)}<br>部門代號：${esc(c.deptCode)}</div><div class="t">${roc(S.ym)}　${esc(c.title)}</div><div class="note">${esc(c.headNote)}</div></div>
+    <table><colgroup><col style="width:52px"><col style="width:58px">${'<col>'.repeat(31)}<col style="width:40px"><col style="width:40px"><col style="width:58px"><col style="width:96px"></colgroup>
+    <thead><tr><th rowspan="2">員工代號</th><th rowspan="2">員工姓名</th><th colspan="31" class="dt">日期</th><th colspan="3">時數／金額</th><th rowspan="2">員工簽章</th></tr><tr>`;
+  for(let d=1;d<=31;d++)h+=`<th class="dt">${d}</th>`;
+  h+=`<th>領照前<br>時數</th><th>${c.rateAfter}元<br>時數</th><th>總金額</th></tr></thead><tbody>`;
+  rows.forEach(st=>{
+    const t=st?totals(st):{before:0,after:0,amount:0};
+    h+=`<tr><td>${st?esc(st.code):''}</td><td>${st?esc(st.name):''}</td>`;
+    for(let d=1;d<=31;d++){const e=st&&d<=n?entry(st.id,d):null;h+=`<td class="${dayCls(d)} ${e&&e.t==='OFF'?'off':''}">${e?(e.t==='w'?fmtH(e.h):e.t):''}</td>`}
+    h+=`<td>${fmtH(t.before)}</td><td>${fmtH(t.after)}</td><td>${t.amount.toLocaleString()}</td><td></td></tr>`});
+  h+=`</tbody><tbody class="notes"><tr><td colspan="2" style="text-align:center">說明：</td><td colspan="36">${c.notes.map((x,i)=>`${i+1}. ${esc(x)}`).join('<br>')}</td></tr></tbody></table>
+    <div class="sign">${c.signers.map(s=>`<div>${esc(s)}：</div>`).join('')}</div></div></div></section>`;
+  return h;
+}
+function loadExcel(){return new Promise((res,rej)=>{if(window.ExcelJS)return res(window.ExcelJS);const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';s.onload=()=>res(window.ExcelJS);s.onerror=()=>rej(new Error('Excel 元件載入失敗'));document.head.appendChild(s)})}
+async function exportXlsx(btn){
+  btn.disabled=true;btn.textContent='產生中…';
+  try{
+    const X=await loadExcel(),c=cfg(),n=dim(S.ym),list=activeStaff();
+    const wb=new X.Workbook(),ws=wb.addWorksheet(roc(S.ym),{pageSetup:{orientation:'landscape',paperSize:9,fitToPage:true,fitToWidth:1,fitToHeight:1,margins:{left:.3,right:.3,top:.4,bottom:.4,header:.2,footer:.2}}});
+    const font={name:'新細明體',size:10},thin={style:'thin'},box={top:thin,left:thin,bottom:thin,right:thin};
+    const fill=a=>({type:'pattern',pattern:'solid',fgColor:{argb:a}});
+    ws.columns=[{width:9},{width:10},...Array(31).fill({width:3.6}),{width:7},{width:7},{width:9},{width:14}];
+    const L=i=>ws.getColumn(i).letter;
+    ws.getCell('A1').value='部門名稱：'+c.deptName;ws.getCell('A2').value='部門代號：'+c.deptCode;
+    ws.mergeCells('C1:AG2');const t=ws.getCell('C1');t.value=roc(S.ym)+'　'+c.title;t.font={name:'新細明體',size:16,bold:true};t.alignment={horizontal:'center',vertical:'middle'};
+    ws.mergeCells('AH1:AK2');const nt=ws.getCell('AH1');nt.value=c.headNote;nt.font={name:'新細明體',size:9,color:{argb:'FFD0021B'}};nt.alignment={wrapText:true,vertical:'middle',horizontal:'right'};
+    ws.mergeCells('A3:A4');ws.getCell('A3').value='員工代號';ws.mergeCells('B3:B4');ws.getCell('B3').value='員工姓名';
+    ws.mergeCells('C3:AG3');ws.getCell('C3').value='日期';ws.getCell('C3').font={...font,color:{argb:'FFC00000'}};
+    ws.mergeCells('AH3:AJ3');ws.getCell('AH3').value='時數／金額';ws.mergeCells('AK3:AK4');ws.getCell('AK3').value='員工簽章';
+    for(let d=1;d<=31;d++){const cell=ws.getCell(4,2+d);cell.value=d;cell.font={...font,color:{argb:'FFC00000'}}}
+    ws.getCell('AH4').value='領照前時數';ws.getCell('AI4').value=c.rateAfter+'元時數';ws.getCell('AJ4').value='總金額';
+    ws.getRow(4).height=30;
+    for(let r=3;r<=4;r++)for(let i=1;i<=37;i++){const cell=ws.getCell(r,i);cell.border=box;cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};if(!cell.font||!cell.font.color)cell.font=font}
+    const rows=list.slice();while(rows.length<9)rows.push(null);
+    rows.forEach((st,k)=>{const r=5+k,row=ws.getRow(r);row.height=32;
+      const tt=st?totals(st):{before:0,after:0,amount:0};
+      row.getCell(1).value=st?st.code:'';row.getCell(2).value=st?st.name:'';
+      for(let d=1;d<=31;d++){const cell=row.getCell(2+d);
+        if(d>n){cell.fill=fill('FFBFBFBF')}else{const w=dow(S.ym,d);if(w===0)cell.fill=fill('FFFF6F9C');if(w===6)cell.fill=fill('FFC6E0B4');
+          const e=st?entry(st.id,d):null;if(e)cell.value=e.t==='w'?e.h:e.t;}}
+      row.getCell(34).value=tt.before;row.getCell(35).value=tt.after;
+      row.getCell(36).value={formula:`AH${r}*${c.rateBefore}+AI${r}*${c.rateAfter}`,result:tt.amount};row.getCell(36).numFmt='#,##0';
+      for(let i=1;i<=37;i++){const cell=row.getCell(i);cell.border=box;cell.font=font;cell.alignment={horizontal:'center',vertical:'middle'}}});
+    const nr=5+rows.length;ws.mergeCells(`A${nr}:B${nr}`);ws.getCell(`A${nr}`).value='說明：';
+    ws.mergeCells(`C${nr}:AK${nr}`);ws.getCell(`C${nr}`).value=c.notes.map((x,i)=>`${i+1}. ${x}`).join('\n');
+    ws.getRow(nr).height=16*c.notes.length+10;
+    for(let i=1;i<=37;i++){const cell=ws.getCell(nr,i);cell.border=box;cell.font=font;cell.alignment={vertical:'middle',wrapText:true,horizontal:i<3?'center':'left'}}
+    const sr=nr+2,pos=[1,12,22,31];c.signers.forEach((s,i)=>{const cell=ws.getCell(sr,pos[i]||1+i*9);cell.value=s+'：';cell.font={name:'新細明體',size:13}});
+    const buf=await wb.xlsx.writeBuffer();
+    await S.dl.save({filename:`${roc(S.ym)}${c.title}.xlsx`,data:new Blob([buf])});
+    toast('已匯出');
+  }catch(e){if(e&&e.code==='declined'){}else toast((e&&e.message)||'匯出失敗')}
+  btn.disabled=false;btn.textContent='匯出 Excel';
+}
+
+/* ---------- 設定 ---------- */
+function viewSetup(){
+  const c=cfg();
+  let h=`<section class="panel"><h2>常用班別<small>員工與主管排班時可直接點選</small></h2><div class="tbl"><table id="shiftTbl"><thead><tr><th>簡稱</th><th>名稱</th><th>上班</th><th>下班</th><th>休息（分）</th><th>時數</th><th></th></tr></thead><tbody>`;
+  c.shifts.forEach((s,i)=>{h+=`<tr data-i="${i}" data-id="${s.id}"><td><input type="text" class="w-s" name="code" value="${esc(s.code)}" maxlength="2" id="sc${i}"></td><td><input type="text" name="name" value="${esc(s.name)}" id="sn${i}"></td><td><input type="time" name="start" value="${s.start}" id="ss${i}"></td><td><input type="time" name="end" value="${s.end}" id="se${i}"></td><td><input type="number" name="brk" value="${s.brk||0}" min="0" step="10" style="width:80px" id="sb${i}"></td><td class="num">${fmtH(hrs(s.start,s.end,s.brk))}</td><td><button class="btn danger" data-act="rmShift" data-i="${i}">刪除</button></td></tr>`});
+  h+=`</tbody></table></div><div class="row"><button class="btn" data-act="addShift">新增班別</button><button class="btn primary" data-act="saveShifts">儲存班別</button><span class="small muted">已排好的班不會因修改班別而變動。</span></div>
+    <span class="small muted">系統規定：人員不可排週六、週日；主管排班不受限制。</span></section>`;
+
+  const list=S.staff.slice().sort((a,b)=>(a.code||'').localeCompare(b.code||''));
+  h+=`<section class="panel"><h2>兼職人員<small>員工自己排 OFF 和上班，沒排的日子由主管補</small></h2><div class="tbl"><table><thead><tr><th>員工代號</th><th>姓名</th><th>時薪</th><th>領照日</th><th>在職</th><th></th></tr></thead><tbody>`;
+  const rowH=(s,k)=>`<tr data-sid="${s?s.id:''}"><td><input type="text" name="code" value="${esc(s?s.code:'')}" style="width:90px" id="pc${k}"></td><td><input type="text" name="name" value="${esc(s?s.name:'')}" id="pn${k}" placeholder="姓名"></td>
+    <td><select name="lic" id="pl${k}"><option value="yes" ${!s||s.lic==='yes'?'selected':''}>已領照 ${c.rateAfter}</option><option value="no" ${s&&s.lic==='no'?'selected':''}>未領照 ${c.rateBefore}</option><option value="date" ${s&&s.lic==='date'?'selected':''}>本月領照（依日期）</option></select></td>
+    <td><input type="date" name="licDate" value="${s&&s.licDate||''}" id="pd${k}"></td><td><input type="checkbox" name="active" ${!s||s.active!==false?'checked':''} id="pa${k}"></td>
+    <td style="white-space:nowrap"><button class="btn primary" data-act="saveStaff">${s?'儲存':'新增'}</button>${s?` <button class="btn danger" data-act="delStaff">刪除</button>`:''}</td></tr>`;
+  list.forEach((s,i)=>h+=rowH(s,i));h+=rowH(null,'new');
+  h+=`</tbody></table></div><div class="row"><button class="btn" data-act="importStaff">從預約系統帶入兼職藥師</button><span class="small muted">「員工代號」請填預約系統的員工編號，兼職藥師登入後才會自動對應到自己的班表。</span></div><span class="small muted">「本月領照」：領照日之前的時數以 ${c.rateBefore} 元計，當天起以 ${c.rateAfter} 元計。取消「在職」可隱藏人員但保留紀錄。</span></section>`;
+
+  h+=`<section class="panel"><h2>人員畫面文字<small>員工排班區塊的標題與說明</small></h2><div class="cards2">
+    <label class="f">標題<input type="text" id="cfSTitle" value="${esc(c.staffTitle||'')}" maxlength="30"></label>
+    <label class="f">副標題<input type="text" id="cfSSub" value="${esc(c.staffSub||'')}" maxlength="80"></label></div>
+    <label class="f">排班說明（顯示在標題下方，每行一點，可留空）<textarea id="cfSGuide" rows="4" placeholder="例如：&#10;每月 25 號前送出下個月班表&#10;每週至少排 1 天 OFF" style="border:1px solid var(--line);background:var(--surface-2);border-radius:7px;padding:8px;color:var(--ink);font:inherit">${esc(c.staffGuide||'')}</textarea></label>
+    <div class="row"><button class="btn primary" data-act="saveStaffText">儲存人員畫面文字</button><button class="btn" data-act="resetStaffText">恢復預設文字</button></div></section>`;
+  h+=`<section class="panel"><h2>申請表資訊</h2><div class="cards2">
+    <label class="f">部門名稱<input type="text" id="cfDept" value="${esc(c.deptName)}"></label>
+    <label class="f">部門代號<input type="text" id="cfCode" value="${esc(c.deptCode)}"></label>
+    <label class="f">表單名稱<input type="text" id="cfTitle" value="${esc(c.title)}"></label>
+    <label class="f">領照前時薪<input type="number" id="cfR1" value="${c.rateBefore}"></label>
+    <label class="f">領照後時薪<input type="number" id="cfR2" value="${c.rateAfter}"></label>
+    <label class="f">每人每月時數上限（0 = 不限）<input type="number" id="cfCap" min="0" value="${c.monthCap??100}"></label>
+    <label class="f">右上角填表說明<input type="text" id="cfHead" value="${esc(c.headNote)}"></label></div>
+    <label class="f">表尾說明（每行一點）<textarea id="cfNotes" rows="4" style="border:1px solid var(--line);background:var(--surface-2);border-radius:7px;padding:8px;color:var(--ink);font:inherit">${esc(c.notes.join('\n'))}</textarea></label>
+    <label class="f">簽核欄（以、分隔）<input type="text" id="cfSign" value="${esc(c.signers.join('、'))}"></label>
+    <div class="row"><button class="btn primary" data-act="saveCfg">儲存申請表資訊</button></div></section>`;
+  return h;
+}
+function readShifts(){
+  return [...document.querySelectorAll('#shiftTbl tbody tr')].map(tr=>{const g=n=>tr.querySelector(`[name=${n}]`).value;
+    return{id:tr.dataset.id,code:g('code').trim()||'班',name:g('name').trim()||'未命名',start:g('start')||'08:00',end:g('end')||'12:00',brk:Number(g('brk'))||0}});
+}
+
+/* ---------- modal / toast ---------- */
+function arm(b,txt){if(b.classList.contains('armed'))return true;b.classList.add('armed');b.textContent=txt;setTimeout(()=>{if(b.isConnected){b.classList.remove('armed');b.textContent=b.dataset.label||''}},3000);return false}
+function emptyPatch(){const p={};for(let d=1;d<=dim(S.ym);d++)p['d'+d]=null;return p}
+let modalCtx=null;
+function modal(html,ctx){modalCtx=ctx;document.getElementById('layer').innerHTML=`<div class="scrim" data-act="scrim"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`}
+function closeModal(){modalCtx=null;document.getElementById('layer').innerHTML=''}
+let tt;function toast(m){clearTimeout(tt);let el=document.querySelector('.toast');if(!el){el=document.createElement('div');el.className='toast';el.setAttribute('role','status');document.body.appendChild(el)}el.textContent=m;tt=setTimeout(()=>el.remove(),2400)}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('.day[data-act]')){e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true,shiftKey:e.shiftKey}))}});
+
+/* ---------- events ---------- */
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t.id==='meSel'){if(S.draft){flushDraft().then(()=>toast('已自動暫存剛才的變更'))}S.anchor=null;S.me=t.value;try{localStorage.setItem('pt-me',S.me)}catch(_){}render()}
+  if(t.id==='cSt'||t.id==='cEn'||t.id==='cBrk'){S.custom={st:document.getElementById('cSt').value,en:document.getElementById('cEn').value,brk:Number(document.getElementById('cBrk').value)||0};render()}
+  if(['psSt','psEn','psBrk','psName'].includes(t.id)&&S.addShift){S.addShift={editId:S.addShift.editId,orig:S.addShift.orig,name:document.getElementById('psName').value,st:document.getElementById('psSt').value,en:document.getElementById('psEn').value,brk:Number(document.getElementById('psBrk').value)||0};if(t.id!=='psName')render()}
+  if(t.id==='fillShift')S.fill.shift=t.value;
+  if(t.id==='fillWk')S.fill.skipWk=t.checked;
+});
+document.addEventListener('input',e=>{if(e.target.id==='myNote'&&S.me){ensureDraft(S.me);S.draft.note=e.target.value;const sb=document.querySelector('[data-act="saveDraft"]');if(sb)sb.disabled=false}});
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='scrim'){if(e.target===b)closeModal();return}
+  if(a==='close'){closeModal();return}
+  if(a==='editMyShift'){const sh=myShifts(S.me).find(x=>x.id===b.dataset.id);if(!sh)return;S.addShift={editId:sh.id,orig:sh.name,name:sh.name,st:sh.start,en:sh.end,brk:sh.brk||0};render();setTimeout(()=>{const i=document.getElementById('psName');if(i){i.focus();i.select()}});return}
+  if(a==='addMyShift'){S.addShift={name:'',st:'09:00',en:'13:00',brk:0};render();setTimeout(()=>{const i=document.getElementById('psName');if(i)i.focus()});return}
+  if(a==='pickDept'){const sh=cfg().shifts.find(x=>x.id===b.dataset.id);if(!sh||!S.me)return;if(inMine(S.me,sh)){toast('已在我的常用班別');return}
+    const item={id:'p'+Date.now().toString(36),fromId:sh.id,code:sh.code,name:sh.name,start:sh.start,end:sh.end,brk:sh.brk||0};
+    if(await saveMyShifts(S.me,myShifts(S.me).concat(item))){S.addShift=null;if(S.tool==='s:'+sh.id)S.tool='s:'+item.id;render();toast('已把「'+sh.name+'」加入我的常用班別')}return}
+  if(a==='cancelMyShift'){S.addShift=null;render();return}
+  if(a==='saveMyShift'){const g=id=>document.getElementById(id).value;const name=g('psName').trim();if(!name){toast('請輸入班別名稱');return}
+    const st=g('psSt'),en=g('psEn'),brk=Number(g('psBrk'))||0;if(!st||!en){toast('請輸入上下班時間');return}
+    if(S.addShift&&S.addShift.editId){await updateMyShift(S.addShift.editId,{name,start:st,end:en,brk});return}
+    const item={id:'p'+Date.now().toString(36),code:name.slice(0,2),name,start:st,end:en,brk};
+    if(await saveMyShifts(S.me,myShifts(S.me).concat(item))){S.addShift=null;S.tool='s:'+item.id;render();toast('已新增「'+name+'」')}return}
+  if(a==='rmMyShift'){const id=b.dataset.id;if(!arm(b,'確認刪除'))return;if(await saveMyShifts(S.me,myShifts(S.me).filter(s=>s.id!==id))){if(S.tool==='s:'+id)S.tool=null;toast('已刪除常用班別，已排的班不受影響')}return}
+  if(a==='tool'){S.tool=S.tool===b.dataset.v?null:b.dataset.v;render();return}
+  const meS=()=>S.staff.find(s=>s.id===S.me);
+  if(a==='day'){const me=meS();if(me&&!locked())applyDay(me,Number(b.dataset.d),e.shiftKey);return}
+  if(a==='rmday'){const me=meS();if(me&&!locked())removeDay(me,Number(b.dataset.d));return}
+  if(a==='saveDraft'){if(await flushDraft('draft'))toast('已暫存');return}
+  if(a==='submit'){const ok=S.draft?await flushDraft('sent'):await saveDays(S.me,{},'sent');if(ok){render();toast('已送出給主管')}return}
+  if(a==='reopen'){if(await saveDays(S.me,{},'draft'))toast('可以修改了，改完記得再送出');return}
+  if(a==='clearAll'){if(!arm(b,'確認全部清除'))return;
+    const me=meS();if(me)clearAll(me);return}
+  if(a==='cell'){openCell(b.dataset.s,Number(b.dataset.d),e.shiftKey);return}
+  if(a==='mset'&&modalCtx){const{sid,days}=modalCtx,v=b.dataset.v;let val;
+    if(v==='clear')val=null;else if(v==='OFF'||v==='F')val={t:v};
+    else if(v==='custom'){const st=document.getElementById('mSt').value,en=document.getElementById('mEn').value,br=Number(document.getElementById('mBrk').value)||0;val={t:'w',s:null,code:'自訂',st,en,h:hrs(st,en,br)}}
+    else val=shiftEntry(shiftById(v.slice(2),sid));
+    const p={};days.forEach(k=>p['d'+k]=val);const stp=S.staff.find(s=>s.id===sid);if(overCap(stp,p))return;withAutoOff(stp,p);closeModal();if(await saveDays(sid,p)&&days.length>1)toast(`已設定 ${days.length} 天`);return}
+  if(a==='fill'){await fillEmpty();return}
+  if(a==='mclear'){const stp=S.staff.find(s=>s.id===b.dataset.s);if(await saveDays(b.dataset.s,withAutoOff(stp,{['d'+b.dataset.d]:null})))toast('已清除');return}
+  if(a==='mclearRow'){if(!arm(b,'確認清除？'))return;if(await saveDays(b.dataset.s,emptyPatch()))toast('已清除此人本月排班');return}
+  if(a==='mclearAll'){if(!arm(b,'確認清除所有人？'))return;let n=0;for(const st of activeStaff()){if(S.sched[st.id]&&await saveDays(st.id,emptyPatch()))n++}toast(n?`已清除 ${n} 人的本月排班`:'本月沒有排班可清除');return}
+  if(a==='lock'){const l=Object.assign({},cfg().locked||{});if(l[S.ym])delete l[S.ym];else l[S.ym]=true;if(await saveConfig({locked:l}))toast(l[S.ym]?'已鎖定':'已解除鎖定');return}
+  if(a==='xlsx'){if(S.dl)exportXlsx(b);return}
+  if(a==='addShift'){const sh=readShifts();sh.push({id:'s'+Date.now().toString(36),code:'新',name:'新班別',start:'09:00',end:'13:00',brk:0});S.config=Object.assign({},cfg(),{shifts:sh});render();toast('記得按「儲存班別」');return}
+  if(a==='rmShift'){const sh=readShifts();sh.splice(Number(b.dataset.i),1);S.config=Object.assign({},cfg(),{shifts:sh});render();toast('記得按「儲存班別」');return}
+  if(a==='saveShifts'){if(await saveConfig({shifts:readShifts()}))toast('班別已儲存');return}
+  if(a==='saveStaffText'){const g=id=>document.getElementById(id).value;if(await saveConfig({staffTitle:g('cfSTitle').trim()||DEFAULT_CONFIG.staffTitle,staffSub:g('cfSSub').trim(),staffGuide:g('cfSGuide').trim()}))toast('人員畫面文字已儲存');return}
+  if(a==='resetStaffText'){if(await saveConfig({staffTitle:DEFAULT_CONFIG.staffTitle,staffSub:DEFAULT_CONFIG.staffSub,staffGuide:''}))toast('已恢復預設文字');return}
+  if(a==='saveCfg'){const g=id=>document.getElementById(id).value;
+    if(await saveConfig({deptName:g('cfDept').trim(),deptCode:g('cfCode').trim(),title:g('cfTitle').trim(),rateBefore:Number(g('cfR1'))||0,rateAfter:Number(g('cfR2'))||0,monthCap:Number(g('cfCap'))||0,headNote:g('cfHead'),
+      notes:g('cfNotes').split('\n').map(s=>s.trim()).filter(Boolean),signers:g('cfSign').split(/[、,，]/).map(s=>s.trim()).filter(Boolean)}))toast('已儲存');return}
+  if(a==='saveStaff'){const tr=b.closest('tr'),g=n=>tr.querySelector(`[name=${n}]`);
+    const data={code:g('code').value.trim(),name:g('name').value.trim(),lic:g('lic').value,licDate:g('licDate').value,active:g('active').checked};
+    if(!data.name){toast('請輸入姓名');return}
+    if(data.lic==='date'&&!data.licDate){toast('請填領照日');return}
+    if(await saveStaff(tr.dataset.sid||null,data))toast(tr.dataset.sid?'已儲存':'已新增 '+data.name);return}
+  if(a==='importStaff'){const src=HOST&&HOST.ptStaff?HOST.ptStaff():[],have=new Set(S.staff.map(s=>String(s.code||'').trim()));
+    const add=src.filter(p=>!have.has(String(p.code)));if(!add.length){toast(src.length?'預約系統的兼職藥師都已在名單中':'預約系統沒有人員類別為「兼職藥師」的人');return}
+    let n=0;for(const p of add){if(await saveStaff(null,{code:String(p.code),name:p.name,lic:'yes',licDate:'',active:true}))n++}toast('已帶入 '+n+' 位兼職藥師，請確認時薪與領照日');return}
+  if(a==='delStaff'){if(!b.classList.contains('armed')){b.classList.add('armed');b.textContent='確認刪除';setTimeout(()=>{b.classList.remove('armed');b.textContent='刪除'},3000);return}
+    await delStaff(b.closest('tr').dataset.sid);toast('已刪除');return}
+});
+
+boot();
+})();
+</script>
+
+</body></html>
