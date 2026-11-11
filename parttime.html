@@ -303,13 +303,13 @@ function shiftEntry(sh){return{t:'w',s:sh.id,code:sh.code,st:sh.start,en:sh.end,
 async function boot(){
   window.addEventListener('hashchange',route);route();
   const u=hostUser(),raw=HOST&&HOST.db?HOST.db():null;
-  if(!u){S.err='請從預約系統登入後，再進入「兼職排班」。';render();return}
-  if(!raw){S.err='目前無法連線到資料庫，兼職排班需要連線資料庫才能使用。';render();return}
+  if(!u){S.err='請從預約系統登入後，再進入「兼職藥師排班」。';render();return}
+  if(!raw){S.err='目前無法連線到資料庫，兼職藥師排班需要連線資料庫才能使用。';render();return}
   const db=wrapDb(raw);S.db=db;S.admin=!!u.admin;
   const t=setTimeout(()=>{if(!S.ready){S.err='連線逾時，請重新整理頁面。';render()}},10000);
   let gotC=false,gotS=false;
   const done=()=>{if(gotC&&gotS&&!S.ready){S.ready=true;clearTimeout(t)}render()};
-  const fail=e=>{clearTimeout(t);S.err=isDenied(e)?'讀取資料失敗：資料庫尚未開放兼職排班的資料（請管理者到 Firebase 主控台更新存取規則）。':'讀取資料失敗：'+(e&&e.message||'請稍後再試');render()};
+  const fail=e=>{clearTimeout(t);S.err=isDenied(e)?'讀取資料失敗：資料庫尚未開放兼職藥師排班的資料（請管理者到 Firebase 主控台更新存取規則）。':'讀取資料失敗：'+(e&&e.message||'請稍後再試');render()};
   db.doc('config/main').onSnapshot(s=>{S.config=s.exists?Object.assign({},DEFAULT_CONFIG,s.data()):null;gotC=true;done()},fail);
   db.collection('myshifts').onSnapshot(q=>{const o={};q.docs.forEach(d=>{const v=d.data();o[d.id]=Array.isArray(v.shifts)?v.shifts:[]});S.myShifts=o;render()},()=>{});
   db.collection('staff').onSnapshot(q=>{S.ptset=q.docs.map(d=>Object.assign({id:d.id},d.data()));S.staff=buildStaff();gotS=true;done()},fail);
@@ -384,7 +384,7 @@ async function delStaff(id){
 }
 
 /* ---------- routing & chrome ---------- */
-/* 一般模式只有「我的班表」；從後台「兼職排班管理」進入（?mode=admin，且為管理者）只有主管功能 */
+/* 一般模式只有「我的班表」；從後台「兼職藥師排班管理」進入（?mode=admin，且為管理者）只有主管功能 */
 const ADM=new URLSearchParams(location.search).get('mode')==='admin';
 const TABS=[['mine','我的班表',false],['plan','主管排班',true],['report','入薪申請表',true],['setup','班別與人員',true]];
 function route(){const h=location.hash.slice(1);S.tab=TABS.some(t=>t[0]===h)?h:(ADM?'plan':'mine');render()}

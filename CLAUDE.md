@@ -10,9 +10,9 @@
 
 | 檔案 | 說明 |
 |---|---|
-| `index.html` | 主程式：登入、預約、後台管理、大夜排班。單一檔案，內含 CSS、JS 與 base64 圖片（有兩行超長的圖片資料，讀檔時用 offset/limit 或 grep，不要整份讀） |
+| `index.html` | 主程式：登入、預約、後台管理、大夜藥師排班。單一檔案，內含 CSS、JS 與 base64 圖片（有兩行超長的圖片資料，讀檔時用 offset/limit 或 grep，不要整份讀） |
 | `overtime.html` | 加班費申請，以 iframe 嵌在主頁內，透過 `window.parent.OTHOST` 取得登入者、員工名單與資料庫，本身不連資料庫 |
-| `parttime.html` | 兼職藥師排班系統，以 iframe 嵌在主頁「🕒 兼職排班」（限人員類別「兼職藥師」與管理者）。透過 `window.parent.PTHOST` 取得登入者與資料庫，本身不連資料庫；寫入前要轉成主頁面的物件（跨 iframe 的物件 Firestore 不接受）。原始版本在 claude.ai Artifact（https://claude.ai/artifact/FgjtuKqhSkMgsseM4NrryZ），同步時要保留檔案中的 PTHOST 轉接段落 |
+| `parttime.html` | 兼職藥師排班系統，以 iframe 嵌在主頁「🕒 兼職藥師排班」（限人員類別「兼職藥師」與管理者）。透過 `window.parent.PTHOST` 取得登入者與資料庫，本身不連資料庫；寫入前要轉成主頁面的物件（跨 iframe 的物件 Firestore 不接受）。原始版本在 claude.ai Artifact（https://claude.ai/artifact/FgjtuKqhSkMgsseM4NrryZ），同步時要保留檔案中的 PTHOST 轉接段落 |
 | `firestore.rules` | Firestore 存取規則的備份。實際規則在 Firebase 主控台設定，改了這個檔案要提醒使用者到主控台貼上並發布 |
 
 ## 架構重點（修改前必讀）
@@ -26,7 +26,7 @@
 
 ## 資料（Firestore，專案 `booking-2027-9ee88`）
 
-集合：`bookings`（預約）、`config`（`main` 系統設定、`staff` 員工名單、`close_YYYY-MM` 月份關閉）、`pw`（密碼雜湊）、`avail`（大夜班填寫）、`sched`（大夜班表）、`ot`（加班資料）、`ptconfig`／`ptstaff`／`ptsched`／`ptmyshifts`（兼職排班）。
+集合：`bookings`（預約）、`config`（`main` 系統設定、`staff` 員工名單、`close_YYYY-MM` 月份關閉）、`pw`（密碼雜湊）、`avail`（大夜班填寫）、`sched`（大夜班表）、`ot`（加班資料）、`ptconfig`／`ptstaff`／`ptsched`／`ptmyshifts`（兼職藥師排班）。
 規則只允許已匿名登入的使用者讀寫這些集合；新增集合時要同時更新 `firestore.rules` 並請使用者到主控台發布。
 
 ## 安全規則
