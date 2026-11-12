@@ -201,7 +201,7 @@ table.stat{width:100%;margin:0;border-collapse:collapse;table-layout:fixed;font-
 </div>
 <div class="bg" id="bg"><div class="sheet">
  <div class="sh"><b id="shT">新增加班</b><button class="x" id="shX" aria-label="關閉">×</button></div>
- <div class="sec"><label class="l" for="reason">加班申請事由 <span class="rnote">紅框標示表示已預設時數及種類，無須更動，但可自己調整</span></label><textarea class="in" id="reason" rows="3"></textarea><div class="chips" id="rch"></div><div class="mut" style="font-size:12px;margin-top:6px">常用事由只能選一個；先點常用事由，再點日期，就會直接送出。</div></div>
+ <div class="sec"><label class="l" for="reason">加班申請事由 <span class="rnote">紅框標示表示已預設時數及種類，無須更動，但可自己調整</span></label><textarea class="in" id="reason" rows="3"></textarea><div class="chips" id="rch"></div><div class="mut" style="font-size:12px;margin-top:6px">常用事由只能選一個；先點常用事由，再點日期，確認後就會直接送出。</div></div>
  <div class="sec"><label class="l">日期（<span id="calT"></span>）</label><div class="cal" id="cal"></div></div>
  <div class="sec"><label class="l">加班起迄時間</label>
   <div class="tt"><input class="in" type="time" id="os"><span>至</span><input class="in" type="time" id="oe"></div><div class="chips" id="tch"></div></div>
@@ -304,7 +304,7 @@ const DEF={maker:'詹智琳',tax:'ex',admin:{id:'admin',name:'admin',h:''},users
 let cfg=JSON.parse(JSON.stringify(DEF));
 const mergeCfg=o=>{Object.keys(DEF).forEach(k=>{if(o&&o[k]!=null&&typeof o[k]===typeof DEF[k])cfg[k]=o[k]});cfg.reasons=cfg.reasons.map(normR);};
 const saveCfg=()=>{try{const c=Object.assign({},cfg);delete c.admin;delete c.users;LS.setItem(CK,JSON.stringify(c))}catch(e){}};
-function dlg(msg,o){o=o||{};return new Promise(res=>{const i=$('#dIn');$('#dMsg').textContent=msg;i.classList.toggle('hide',!o.input);i.value='';
+function dlg(msg,o){o=o||{};return new Promise(res=>{const i=$('#dIn');$('#dMsg').textContent=msg;$('#dOk').textContent=o.ok||'確定';i.classList.toggle('hide',!o.input);i.value='';
   $('#dlgBg').classList.add('on');if(o.input)i.focus();
   const done=v=>{$('#dlgBg').classList.remove('on');$('#dOk').onclick=$('#dNo').onclick=null;res(v)};
   $('#dOk').onclick=()=>done(o.input?i.value:true);$('#dNo').onclick=()=>done(o.input?null:false)})}
@@ -484,7 +484,7 @@ function drawCal(){
 $('#cal').onclick=e=>{const d=e.target.dataset&&e.target.dataset.d;if(!d)return;E.date=d;
   if(!typeSet){const w=wd(d);E.type=(w==='六'||w==='日')?cfg.defWe:cfg.defWk;drawTypes();refreshHrs()}drawCal();
   // 新增加班時，已選常用事由再選日期，就直接送出（資料不完整會顯示原因，不會送出）
-  if(editing<0&&E.rsel>=0)commit(false)};
+  if(editing<0&&E.rsel>=0)commit(false,true)};
 function drawTypes(){$('#types').innerHTML=Object.keys(TYPES).map(k=>'<button type="button" data-t="'+k+'" style="--c:'+TC[k]+'" class="'+(E.type===k?'on':'')+'"><b>'+k+'</b>'+TYPES[k]+'</button>').join('')}
 $('#types').onclick=e=>{const b=e.target.closest('button');if(!b)return;E.type=b.dataset.t;typeSet=true;drawTypes();refreshHrs()};
 function drawHrs(){
@@ -526,7 +526,7 @@ $('#del').onclick=async()=>{const r0=S.rows[editing],rr0=r0&&rrOf(loadRev()[S.h.
   if(rr0&&rr0.st!=='rej'&&USER&&USER.role!=='admin')return toast('這筆已審核通過，無法自行刪除，請洽管理者處理');
   if(await dlg('刪除這一筆加班？')){S.rows.splice(editing,1);refresh();closeSheet()}};
 
-function commit(again){
+async function commit(again,ask){
   ['os','oe','rs','re'].forEach(k=>E[k]=$('#'+k).value);E.reason=$('#reason').value.trim();E.nr=$('#nr').checked;
   const f={A:['front','back'],B:['norm'],C:E.nm?['norm','front','back']:['front','back']}[E.type]||[];
   const bad=!E.reason?'請填寫加班事由':!E.date?'請選擇日期':!E.os||!E.oe?'請填加班起迄時間':!E.type?'請選擇種類':
@@ -536,6 +536,7 @@ function commit(again){
     if(!mine)bad2='加班起迄時間不正確（起迄不能相同）';
     else{const tot=dayTotal(E.date,editing)+mine;if(tot>MAXDAY*60)bad2=E.date+' 當日加班合計 '+fh(tot)+' 小時，超過每天上限 '+MAXDAY+' 小時'}}
   if(bad2){$('#err').textContent=bad2;return}
+  if(ask&&!await dlg('確定送出這筆加班？\n日期：'+E.date+'（'+wd(E.date)+'）\n時間：'+E.os+'–'+E.oe+'\n事由：'+E.reason,{ok:'確認'}))return;
   const r={date:E.date,os:E.os,oe:E.oe,rs:E.nr?'':E.rs,re:E.nr?'':E.re,reason:E.reason,type:E.type,
     norm:f.includes('norm')?E.norm:'',front:f.includes('front')?E.front:'',back:f.includes('back')?E.back:''};
   r.tax=E.tax||cfg.tax;

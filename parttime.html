@@ -136,6 +136,8 @@ div.tool.mine{cursor:default}
 .tot.over{color:var(--danger);font-weight:700}
 .day:disabled{cursor:default}
 .day.nowk{background:var(--surface-2);border-style:dashed;opacity:.6}
+.day.hol{background:#e53935;border-color:#e53935;border-style:solid;opacity:1;color:#fff}.day.hol .dn{color:#fff;font-weight:700}.day .hn{font-size:11.5px;font-weight:700;line-height:1.2}
+table.plan th.hol{background:#e53935;color:#fff}table.plan td.hol{background:#f8b4b2}
 .day,.cellbtn{user-select:none;-webkit-user-select:none}
 .day.anchor,.cellbtn.anchor{box-shadow:inset 0 0 0 2px var(--warn)}
 .hint{font-size:12.5px;color:var(--muted)}
@@ -495,7 +497,7 @@ function toolsHtml(mode,sid){
   h+=`<button class="tool off-R" data-act="tool" data-v="OFF" aria-pressed="${T==='OFF'}"><span class="chip OFF">OFF</span>排休</button>`;
   if(!S.addShift)h+=`<button class="tool add" data-act="addMyShift"><span>＋ 新增常用班別</span></button>`;
   h+=`</div>${addShiftHtml()}
-      <div class="hint">點一天套用；☆ 加入我的常用班別，✕ 刪除；先點起始日，再按住 <kbd>Shift</kbd> 點結束日，可一次套用整段日期。週六、週日不開放選擇。</div>`;
+      <div class="hint">點一天套用；☆ 加入我的常用班別，✕ 刪除；先點起始日，再按住 <kbd>Shift</kbd> 點結束日，可一次套用整段日期。週六、週日及紅色的醫院公休日不開放選擇。</div>`;
   return h;
 }
 function chipHtml(e,mine){
@@ -512,11 +514,15 @@ function calendarHtml(me,ro){
   for(let d=1;d<=n;d++){const w=dow(S.ym,d),e=entry(me.id,d);
     const mine=effMode(me)!=='off'||!e||e.t!=='w';
     const nowk=!dayOpen(d),live=!ro&&!nowk;
-    h+=`<div class="day ${w===0?'sun':w===6?'sat':''} ${nowk?'nowk':''} ${live?'live':''} ${S.anchor&&S.anchor.sid===me.id&&S.anchor.d===d?'anchor':''} ${S.ym===todayYm&&d===now.getDate()?'today':''}" ${live?`data-act="day" data-d="${d}" role="button" tabindex="0"`:''} aria-label="${d}日">
-      <span class="dn">${d}</span>${chipHtml(e,mine)}${live&&e&&mine?`<button class="x" data-act="rmday" data-d="${d}" aria-label="刪除${d}日">✕</button>`:''}</div>`;}
+    const ho=isHolOff(d)?holOf(d):null;
+    h+=`<div class="day ${w===0?'sun':w===6?'sat':''} ${nowk?'nowk':''} ${ho?'hol':''} ${live?'live':''} ${S.anchor&&S.anchor.sid===me.id&&S.anchor.d===d?'anchor':''} ${S.ym===todayYm&&d===now.getDate()?'today':''}" ${live?`data-act="day" data-d="${d}" role="button" tabindex="0"`:''} aria-label="${d}日">
+      <span class="dn">${d}</span>${ho?`<span class="hn">${esc(ho.n)}<br>醫院公休</span>`:''}${chipHtml(e,mine)}${live&&e&&mine?`<button class="x" data-act="rmday" data-d="${d}" aria-label="刪除${d}日">✕</button>`:''}</div>`;}
   return h+`</div>`;
 }
-function dayOpen(d){const w=dow(S.ym,d);return w!==0&&w!==6}
+/* 醫院公休日（預約系統後台「全年度行事曆」）：底色紅色，兼職藥師不能排上班 */
+function holOf(d){const ds=S.ym+'-'+String(d).padStart(2,'0'),l=HOST&&HOST.holidays?HOST.holidays():[];return (l||[]).find(x=>x.d===ds)||null}
+const isHolOff=d=>{const h=holOf(d);return !!(h&&h.t==='off')};
+function dayOpen(d){const w=dow(S.ym,d);return w!==0&&w!==6&&!isHolOff(d)}
 function weekCheck(me){
   return '';
   const n=dim(S.ym);let miss=[];
@@ -564,13 +570,13 @@ function viewPlan(){
     <span class="small muted">只填沒有排班也沒有休假的日子，達到每月上限就停止；填完可再逐格調整。</span></div>
     <div class="hint">點一格編輯；先點一格，再按住 <kbd>Shift</kbd> 點同一列的另一格，可一次設定整段日期。主管可排週六、週日。</div>
     <div class="gridwrap" data-keep="plan"><table class="plan"><thead><tr><th class="nm">人員</th>`;
-  for(let d=1;d<=n;d++){const w=dow(S.ym,d);h+=`<th class="dcol ${w===0?'sun':w===6?'sat':''}"><span class="num">${d}</span><br><small>${WD[w]}</small></th>`}
+  for(let d=1;d<=n;d++){const w=dow(S.ym,d),ho=isHolOff(d)?holOf(d):null;h+=`<th class="dcol ${w===0?'sun':w===6?'sat':''} ${ho?'hol':''}" ${ho?`title="${esc(ho.n)}（醫院公休）"`:''}><span class="num">${d}</span><br><small>${WD[w]}</small></th>`}
   h+=`<th class="tot">時數</th><th class="tot">金額</th></tr></thead><tbody>`;
   list.forEach(st=>{const t=totals(st);
     h+=`<tr><td class="nm"><b>${esc(st.name)}</b><div class="sub">${statusPill(S.sched[st.id])}</div>${S.sched[st.id]&&S.sched[st.id].note?`<div class="nnote" title="${esc(S.sched[st.id].note)}">備註：${esc(S.sched[st.id].note)}</div>`:''}${t.hours||Object.keys(S.sched[st.id]||{}).some(k=>/^d\d+$/.test(k)&&S.sched[st.id][k])?`<button class="linkbtn" data-act="mclearRow" data-s="${st.id}" data-label="清除此人本月排班">清除此人本月排班</button>`:''}</td>`;
     for(let d=1;d<=n;d++){const w=dow(S.ym,d),e=entry(st.id,d);
       let c='';if(e){c=e.t==='w'?`<span class="w">${esc((e.code||'班').slice(0,2))}<small>${fmtH(e.h)}</small></span>`:`<span class="${e.t}">${e.t}</span>`}
-      h+=`<td class="${w===0?'sun':w===6?'sat':''}"><button class="cellbtn ${S.anchor&&S.anchor.sid===st.id&&S.anchor.d===d?'anchor':''}" data-act="cell" data-s="${st.id}" data-d="${d}" aria-label="${esc(st.name)} ${d}日">${c}</button>${e?`<button class="cx" data-act="mclear" data-s="${st.id}" data-d="${d}" aria-label="清除${esc(st.name)} ${d}日">✕</button>`:''}</td>`}
+      h+=`<td class="${w===0?'sun':w===6?'sat':''} ${isHolOff(d)?'hol':''}"><button class="cellbtn ${S.anchor&&S.anchor.sid===st.id&&S.anchor.d===d?'anchor':''}" data-act="cell" data-s="${st.id}" data-d="${d}" aria-label="${esc(st.name)} ${d}日">${c}</button>${e?`<button class="cx" data-act="mclear" data-s="${st.id}" data-d="${d}" aria-label="清除${esc(st.name)} ${d}日">✕</button>`:''}</td>`}
     h+=`<td class="tot ${cap()&&t.hours>cap()?'over':''}">${fmtH(t.hours)}</td><td class="tot">${t.amount.toLocaleString()}</td></tr>`});
   return h+`</tbody></table></div></section>`;
 }
@@ -590,7 +596,7 @@ async function fillEmpty(){
   const sh=shiftById(document.getElementById('fillShift').value);if(!sh)return;
   const skip=document.getElementById('fillWk').checked,n=dim(S.ym);let cnt=0;
   for(const st of activeStaff()){const p={};
-    for(let d=1;d<=n;d++){const w=dow(S.ym,d);if(skip&&(w===0||w===6))continue;if(!entry(st.id,d)){const v=shiftEntry(sh);if(cap()&&hoursWith(st,p)+v.h>cap())break;p['d'+d]=v}}
+    for(let d=1;d<=n;d++){const w=dow(S.ym,d);if(skip&&(w===0||w===6))continue;if(isHolOff(d))continue;if(!entry(st.id,d)){const v=shiftEntry(sh);if(cap()&&hoursWith(st,p)+v.h>cap())break;p['d'+d]=v}}
     const k=Object.keys(p).length;if(k){cnt+=k;await saveDays(st.id,withAutoOff(st,p))}}
   toast(cnt?`已補上 ${cnt} 個班（不超過每月 ${cap()||'∞'} 小時）`:'沒有空白日需要補，或已達時數上限');
 }
