@@ -213,7 +213,7 @@ function finishLogin(a){
   greet=GREETS[Math.floor(Math.random()*GREETS.length)];
   loginErr="";const isA=ADMINS.includes(a);
   user={code:a,name:STAFF[a],admin:isA,def:!pws[a]};
-  if(SHIFT[a]==="大夜班")openNight();else{view="form";render()}
+  if(SHIFT[a]==="大夜班")openNight();else if(CAT[a]==="兼職藥師")openPT();else{view="form";render()} /* 兼職藥師登入後直接進入兼職藥師排班 */
 }
 async function login(){
   const a=$("acc").value.trim(),p=$("pw").value;
