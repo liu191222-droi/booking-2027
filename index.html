@@ -54,6 +54,7 @@ body{font-size:16px}
 .d.off{opacity:.45;text-decoration:line-through;cursor:not-allowed;background:color-mix(in srgb,var(--mut) 15%,transparent)}
 .d.off.lk{text-decoration:none}
 button:disabled:not(.d){opacity:.4;cursor:not-allowed}
+.dp .d.wkend{text-decoration:none!important;opacity:1!important;color:#fff!important}.dp .d.wkend.sat{background:#43a047!important;border-color:#43a047!important}.dp .d.wkend.sun{background:#e53935!important;border-color:#e53935!important}
 .dp .d.hol{text-decoration:none!important;background:#e53935!important;color:#fff!important;opacity:1!important;border-color:#e53935!important}.dp .d.hol small{color:#fff!important}
 .ycal{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}.ycal .m{border:1px solid var(--bd);border-radius:10px;padding:8px}.ycal .m b{display:block;text-align:center;margin-bottom:4px}.ycal .g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:12px;text-align:center}.ycal .g span{padding:3px 0;border-radius:4px}.ycal .g .w{color:#888}.ycal .g .hoff{background:#e53935;color:#fff;font-weight:700}.ycal .g .hopen{box-shadow:inset 0 0 0 2px #e53935;color:#c62828;font-weight:700}.holrow.off td:first-child{border-left:5px solid #e53935}
 .bk{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:8px}
@@ -278,7 +279,7 @@ function formView(){
   for(let d=1;d<=days;d++){
     const ds=`${YEAR}-${pad(calM+1)}-${pad(d)}`,off=dayOff(ds);
     const tag=off==="taken"?"已約":off==="full"?"額滿":off==="blocked"?"休":off==="hol"?"公休":"";
-    cal+=`<button class="d ${sDate===ds?"on":""} ${off?"off":""} ${off==="hol"?"hol":""} ${off==="locked"?"lk":""} ${(first+d-1)%7===6?"sat":(first+d-1)%7===0?"sun":""}" ${off&&off!=="locked"?"disabled":""} onclick="pickDate('${ds}')" ${off==="hol"?`title="${esc(holOff(ds).n)}（醫院公休）"`:""}>${d}${tag?`<small>${tag}</small>`:""}</button>`}
+    cal+=`<button class="d ${sDate===ds?"on":""} ${off?"off":""} ${off==="hol"?"hol":off==="wkend"?"wkend":""} ${off==="locked"?"lk":""} ${(first+d-1)%7===6?"sat":(first+d-1)%7===0?"sun":""}" ${off&&off!=="locked"?"disabled":""} onclick="pickDate('${ds}')" ${off==="hol"?`title="${esc(holOff(ds).n)}（醫院公休）"`:""}>${d}${tag?`<small>${tag}</small>`:""}</button>`}
   const sk=slotKind(sType),sit=cfg.slotItems.find(x=>x.n===sType);
   const sessBtns=sit?sessSort(sit.ss).filter(x=>x.d>=todayS()).map(x=>{const L=x.m||0,fu=isFull(sit.n,x.d,x.t,editId),off=dayOff(x.d)||(fu?"full":""),k=x.d+"|"+x.t;return `<button class="pick ${sSess===k?"on":""}" ${off&&sSess!==k?"disabled":""} data-k="${esc(k)}" onclick="pickSess(this.dataset.k)"><b>${esc(dshort(x.d))}</b><small class="mut" style="display:block">${esc(x.t)} · 目前 ${sessCount(sit.n,x.d,x.t,editId)}${L?" / 限定 "+L:""} 人${fu?" · 已額滿":off?" · 已停止":""}</small></button>`}).join(""):"";
   const bkCard=b=>`<div class="bk"><div><b>${esc(dstr(b.date))}</b><div>${b.type==="生日體檢"?"🎂 ":""}${esc(b.type)}${b.slot?" · "+esc(b.slot):""}</div>${b.note?`<div class="mut">${esc(b.note)}</div>`:""}</div><div class="row"><button class="sec" style="padding:6px 14px" onclick="startEdit('${b.id}')">修改</button><button class="del" style="padding:6px 14px" onclick="cancelMine('${b.id}')">取消</button></div></div>`;
@@ -292,7 +293,7 @@ function formView(){
     <div style="margin-top:8px"><button class="sec" style="padding:6px 12px;font-size:14px" onclick="jumpFirst()">找最近可預約的日期</button></div>
     <div class="dp">${cal}</div>
     ${monthLocked(YEAR+"-"+pad(calM+1)+"-01")?`<div class="mut" style="margin-top:8px;color:var(--dn)">${LOCK_MSG}</div>`:""}
-    ${limitOf(sType)?`<div class="mut" style="margin-top:8px">「${esc(sType)}」每天限定 ${limitOf(sType)} 人，額滿的日期會標示「額滿」。</div>`:""}<div class="mut" style="margin-top:8px">${sType==="生日體檢"?"生日體檢不開放週六、週日及紅色的醫院公休日；灰色「已約」的日期已有人預約，無法選擇。":"選擇「生日體檢」後，已被預約的日期會標示「已約」。「休」為不開放日。"}</div>
+    ${limitOf(sType)?`<div class="mut" style="margin-top:8px">「${esc(sType)}」每天限定 ${limitOf(sType)} 人，額滿的日期會標示「額滿」。</div>`:""}<div class="mut" style="margin-top:8px">${sType==="生日體檢"?"生日體檢不開放週六（綠色）、週日及醫院公休日（紅色）；灰色「已約」的日期已有人預約，無法選擇。":"選擇「生日體檢」後，已被預約的日期會標示「已約」。「休」為不開放日。"}</div>
     ${sDate?`<div style="margin-top:8px"><b>已選：${esc(dstr(sDate))}</b></div>`:""}</div>`;
   return `<div class="top"><div><b>${hello()}</b> <span class="mut">(${user.code})</span></div><div class="row">${user.admin?`<button class="sec" onclick="go('admin')">後台管理</button>`:""}<button class="sec" onclick="go('pw')">修改密碼</button><button class="sec" onclick="logout()">登出</button></div></div>
   ${user.def?`<div class="msg">你目前使用預設密碼，建議先<a href="#" onclick="go('pw');return false">修改密碼</a>。</div>`:""}
