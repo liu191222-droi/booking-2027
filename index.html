@@ -54,6 +54,7 @@ body{font-size:16px}
 .d.off{opacity:.45;text-decoration:line-through;cursor:not-allowed;background:color-mix(in srgb,var(--mut) 15%,transparent)}
 .d.off.lk{text-decoration:none}
 button:disabled:not(.d){opacity:.4;cursor:not-allowed}
+.dp .d.hol{background:#e53935!important;color:#fff!important;opacity:1!important;border-color:#e53935!important}.dp .d.hol small{color:#fff!important}
 .ycal{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}.ycal .m{border:1px solid var(--bd);border-radius:10px;padding:8px}.ycal .m b{display:block;text-align:center;margin-bottom:4px}.ycal .g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:12px;text-align:center}.ycal .g span{padding:3px 0;border-radius:4px}.ycal .g .w{color:#888}.ycal .g .hoff{background:#e53935;color:#fff;font-weight:700}.ycal .g .hopen{box-shadow:inset 0 0 0 2px #e53935;color:#c62828;font-weight:700}.holrow.off td:first-child{border-left:5px solid #e53935}
 .bk{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:8px}
 .hero{background:#fff;border-radius:16px;text-align:center;padding:24px 16px 20px;margin-bottom:14px;border-top:8px solid #007440;box-shadow:0 4px 16px rgba(0,116,64,.18)}
@@ -256,7 +257,10 @@ function resetForm(){editId=null;sType="";sOther="";sDate="";sSlot="";sNote="";s
 function birthdayTaken(d){return bookings.some(x=>x.type==="生日體檢"&&x.date===d&&x.id!==editId)}
 function monthLocked(ds){const m=ds.slice(0,7),md=(cfg.monthMode||{})[m];if(md==="open")return false;if(md==="closed")return true;return todayS()>=m+"-01"}
 function monthStatus(m){const md=(cfg.monthMode||{})[m];if(md==="open")return "已開啟（手動）";if(md==="closed")return "已關閉（手動）";return todayS()>=m+"-01"?"已停止預約（自動）":"開放預約中（自動）"}
-function dayOff(d){if(monthLocked(d))return "locked";if(d<todayS())return "past";if((cfg.blocked||[]).includes(d))return "blocked";if(sType==="生日體檢"&&birthdayTaken(d))return "taken";if(sType&&!slotKind(sType)&&isFull(sType,d,"",editId))return "full";return ""}
+/* 生日體檢不可選週六、週日與醫院公休日（後台「全年度行事曆」） */
+const holOff=d=>(cfg.holidays||[]).find(x=>x.d===d&&x.t==="off")||null;
+function dayOff(d){if(monthLocked(d))return "locked";if(d<todayS())return "past";if((cfg.blocked||[]).includes(d))return "blocked";
+  if(sType==="生日體檢"){if(holOff(d))return "hol";const w=new Date(d+"T00:00:00").getDay();if(w===0||w===6)return "wkend"}if(sType==="生日體檢"&&birthdayTaken(d))return "taken";if(sType&&!slotKind(sType)&&isFull(sType,d,"",editId))return "full";return ""}
 function slotCount(d,s){return bookings.filter(x=>x.date===d&&x.slot===s&&x.id!==editId).length}
 function pickType(v){sSlot="";sSess="";if(slotKind(v))sDate="";sType=v;if(sDate&&dayOff(sDate))sDate="";render()}
 function pickDate(d){if(monthLocked(d)){notice(LOCK_MSG);return}sDate=d;render()}
@@ -273,8 +277,8 @@ function formView(){
   let cal=["日","一","二","三","四","五","六"].map((w,i)=>`<div class="wd ${i===6?"sat":i===0?"sun":""}">${w}</div>`).join("")+"<span></span>".repeat(first);
   for(let d=1;d<=days;d++){
     const ds=`${YEAR}-${pad(calM+1)}-${pad(d)}`,off=dayOff(ds);
-    const tag=off==="taken"?"已約":off==="full"?"額滿":off==="blocked"?"休":"";
-    cal+=`<button class="d ${sDate===ds?"on":""} ${off?"off":""} ${off==="locked"?"lk":""} ${(first+d-1)%7===6?"sat":(first+d-1)%7===0?"sun":""}" ${off&&off!=="locked"?"disabled":""} onclick="pickDate('${ds}')">${d}${tag?`<small>${tag}</small>`:""}</button>`}
+    const tag=off==="taken"?"已約":off==="full"?"額滿":off==="blocked"?"休":off==="hol"?"公休":"";
+    cal+=`<button class="d ${sDate===ds?"on":""} ${off?"off":""} ${off==="hol"?"hol":""} ${off==="locked"?"lk":""} ${(first+d-1)%7===6?"sat":(first+d-1)%7===0?"sun":""}" ${off&&off!=="locked"?"disabled":""} onclick="pickDate('${ds}')" ${off==="hol"?`title="${esc(holOff(ds).n)}（醫院公休）"`:""}>${d}${tag?`<small>${tag}</small>`:""}</button>`}
   const sk=slotKind(sType),sit=cfg.slotItems.find(x=>x.n===sType);
   const sessBtns=sit?sessSort(sit.ss).filter(x=>x.d>=todayS()).map(x=>{const L=x.m||0,fu=isFull(sit.n,x.d,x.t,editId),off=dayOff(x.d)||(fu?"full":""),k=x.d+"|"+x.t;return `<button class="pick ${sSess===k?"on":""}" ${off&&sSess!==k?"disabled":""} data-k="${esc(k)}" onclick="pickSess(this.dataset.k)"><b>${esc(dshort(x.d))}</b><small class="mut" style="display:block">${esc(x.t)} · 目前 ${sessCount(sit.n,x.d,x.t,editId)}${L?" / 限定 "+L:""} 人${fu?" · 已額滿":off?" · 已停止":""}</small></button>`}).join(""):"";
   const bkCard=b=>`<div class="bk"><div><b>${esc(dstr(b.date))}</b><div>${b.type==="生日體檢"?"🎂 ":""}${esc(b.type)}${b.slot?" · "+esc(b.slot):""}</div>${b.note?`<div class="mut">${esc(b.note)}</div>`:""}</div><div class="row"><button class="sec" style="padding:6px 14px" onclick="startEdit('${b.id}')">修改</button><button class="del" style="padding:6px 14px" onclick="cancelMine('${b.id}')">取消</button></div></div>`;
@@ -288,7 +292,7 @@ function formView(){
     <div style="margin-top:8px"><button class="sec" style="padding:6px 12px;font-size:14px" onclick="jumpFirst()">找最近可預約的日期</button></div>
     <div class="dp">${cal}</div>
     ${monthLocked(YEAR+"-"+pad(calM+1)+"-01")?`<div class="mut" style="margin-top:8px;color:var(--dn)">${LOCK_MSG}</div>`:""}
-    ${limitOf(sType)?`<div class="mut" style="margin-top:8px">「${esc(sType)}」每天限定 ${limitOf(sType)} 人，額滿的日期會標示「額滿」。</div>`:""}<div class="mut" style="margin-top:8px">${sType==="生日體檢"?"灰色「已約」的日期已有人預約，無法選擇。":"選擇「生日體檢」後，已被預約的日期會標示「已約」。「休」為不開放日。"}</div>
+    ${limitOf(sType)?`<div class="mut" style="margin-top:8px">「${esc(sType)}」每天限定 ${limitOf(sType)} 人，額滿的日期會標示「額滿」。</div>`:""}<div class="mut" style="margin-top:8px">${sType==="生日體檢"?"生日體檢不開放週六、週日及紅色的醫院公休日；灰色「已約」的日期已有人預約，無法選擇。":"選擇「生日體檢」後，已被預約的日期會標示「已約」。「休」為不開放日。"}</div>
     ${sDate?`<div style="margin-top:8px"><b>已選：${esc(dstr(sDate))}</b></div>`:""}</div>`;
   return `<div class="top"><div><b>${hello()}</b> <span class="mut">(${user.code})</span></div><div class="row">${user.admin?`<button class="sec" onclick="go('admin')">後台管理</button>`:""}<button class="sec" onclick="go('pw')">修改密碼</button><button class="sec" onclick="logout()">登出</button></div></div>
   ${user.def?`<div class="msg">你目前使用預設密碼，建議先<a href="#" onclick="go('pw');return false">修改密碼</a>。</div>`:""}
@@ -313,6 +317,7 @@ async function submitB(){
   if((cfg.blocked||[]).includes(date))return notice("這一天不開放預約，請選擇其他日期。");
   if(isFull(t,date,sl,editId))return notice((kind?"這個場次":"這一天")+"已額滿（限定 "+limFor(t,date,sl)+" 人），請選擇其他"+(kind?"場次":"日期")+"。");
   if(t==="生日體檢"&&bookings.some(x=>x.code===user.code&&x.type==="生日體檢"&&x.id!==editId))return notice(callName(user)+"平安，你已經預約過生日體檢了，每人一年只能預約一次喔~");
+  if(t==="生日體檢"){const h=holOff(date),w=new Date(date+"T00:00:00").getDay();if(h)return notice("這一天是醫院公休日（"+h.n+"），生日體檢請選擇其他日期。");if(w===0||w===6)return notice("生日體檢不開放週六、週日，請選擇其他日期。")}
   if(t==="生日體檢"&&birthdayTaken(date)){const p=date.split("-");return notice(callName(user)+"平安，"+(+p[1])+"月"+(+p[2])+"日已有人預約了，請再重新預約其他日期。")}
   const old=editId?bookings.find(x=>x.id===editId):null;
   const b={id:editId||"b"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),code:user.code,name:user.name,type:t,date,slot:sl,note,created:(old&&old.created)||new Date().toISOString(),updated:new Date().toISOString()};
