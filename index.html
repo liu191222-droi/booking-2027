@@ -152,7 +152,7 @@ function normCfg(d){d=d||{};const o=(d.options||DEF.options).slice();if(!d.eduSl
   const slotItems=Array.isArray(d.slotItems)?d.slotItems.map(x=>({n:x.n,ss:(x.ss||[]).map(y=>sessObj(y.d,y.t,y.m)),c:!!x.c})):o.filter(x=>SLOT_TYPES.includes(x)||x===EDU).map(n=>({n,ss:[],c:n===EDU}));
   const dateItems=Array.isArray(d.dateItems)?d.dateItems.slice():o.filter(x=>!SLOT_TYPES.includes(x)&&x!==EDU);
   if(!dateItems.includes("生日體檢")&&!slotItems.some(x=>x.n==="生日體檢"))dateItems.unshift("生日體檢");
-  return{options:dateItems.concat(slotItems.map(x=>x.n)),dateItems,slotItems,slots:sl,eduSlots:es,blocked:d.blocked||[],monthMode:d.monthMode||{},limits:normLim(d.limits),holidays:normHol(d.holidays),admins:Array.isArray(d.admins)?d.admins.map(String).filter(Boolean):[]}}
+  return{options:dateItems.concat(slotItems.map(x=>x.n)),dateItems,slotItems,slots:sl,eduSlots:es,blocked:d.blocked||[],monthMode:d.monthMode||{},limits:normLim(d.limits),holidays:normHol(d.holidays),admins:Array.isArray(d.admins)?d.admins.map(String).filter(Boolean):[],calPdf:d.calPdf&&d.calPdf.name?{name:String(d.calPdf.name),at:+d.calPdf.at||0}:null}}
 /* 報名人數限制：沒有設定＝不限定。「只選日期」項目存在 limits={項目名稱:人數}，以每天計；「日期＋時段」項目存在各場次的 m（每場人數上限） */
 function sessObj(d,t,m){const o={d,t},n=Math.floor(+m);if(n>0)o.m=n;return o}
 const sessLimit=(t,d,sl)=>{const it=cfg.slotItems.find(x=>x.n===t),s=it&&it.ss.find(y=>y.d===d&&y.t===sl);return s&&s.m||0};
@@ -386,10 +386,24 @@ function holHtml(){
     for(let d=1;d<=n;d++){const ds=`${YEAR}-${pad(m+1)}-${pad(d)}`,h=H[ds];g+=`<span class="${h?(h.t==="off"?"hoff":"hopen"):""}" ${h?`title="${esc(h.n+(h.t==="off"?"（醫院公休）":"（開診）")+(h.note?"・"+h.note:""))}"`:""}>${d}</span>`}
     return `<div class="m"><b>${m+1} 月</b><div class="g">${g}</div></div>`}).join("");
   const rows=cfg.holidays.map(x=>`<tr class="holrow ${x.t}"><td style="white-space:nowrap">${esc(dstr(x.d))}</td><td>${esc(x.n)}</td><td><select data-d="${x.d}" onchange="setHolType(this.dataset.d,this.value)" style="width:auto"><option value="off" ${x.t==="off"?"selected":""}>醫院公休</option><option value="open" ${x.t==="open"?"selected":""}>開診</option></select></td><td>${esc(x.note)}</td><td><button class="del" style="padding:4px 10px" onclick="rmHol('${x.d}')">刪除</button></td></tr>`).join("")||`<tr><td colspan="5" class="mut">尚未設定</td></tr>`;
-  return `<div class="card"><h2>${YEAR} 年度行事曆</h2><div class="mut" style="margin-bottom:10px"><span style="display:inline-block;width:14px;height:14px;background:#e53935;border-radius:3px;vertical-align:-2px"></span> 醫院公休（兼職藥師當天不能排上班）　<span style="display:inline-block;width:14px;height:14px;box-shadow:inset 0 0 0 2px #e53935;border-radius:3px;vertical-align:-2px"></span> 國定假日照常開診。滑鼠移到日期上可看假日名稱。</div><div class="ycal">${months}</div></div>
+  const cp=cfg.calPdf;
+  const pdfRow=`<div class="row" style="align-items:center;margin-bottom:10px"><button onclick="dlCalPdf()" ${cp?"":"disabled"}>📥 下載行事曆</button><label class="sec" style="cursor:pointer;display:inline-block;padding:8px 14px;border-radius:10px;border:1px solid var(--bd)">${cp?"更換":"上傳"}行事曆 PDF<input type="file" accept="application/pdf" style="display:none" onchange="upCalPdf(this)"></label><span class="mut" style="font-size:13px">${cp?`目前檔案：${esc(cp.name)}（${new Date(cp.at).toLocaleDateString("zh-TW")} 上傳）`:"尚未上傳行事曆 PDF"}</span></div>`;
+  return `<div class="card"><h2>${YEAR} 年度行事曆</h2>${pdfRow}<div class="mut" style="margin-bottom:10px"><span style="display:inline-block;width:14px;height:14px;background:#e53935;border-radius:3px;vertical-align:-2px"></span> 醫院公休（兼職藥師當天不能排上班）　<span style="display:inline-block;width:14px;height:14px;box-shadow:inset 0 0 0 2px #e53935;border-radius:3px;vertical-align:-2px"></span> 國定假日照常開診。滑鼠移到日期上可看假日名稱。</div><div class="ycal">${months}</div></div>
   <div class="card"><h2>假日清單（共 ${cfg.holidays.length} 天）</h2><div class="scroll"><table><tr><th>日期</th><th>假日名稱</th><th>員基醫院</th><th>備註</th><th></th></tr>${rows}</table></div>
   <div class="row" style="margin-top:12px;align-items:center"><input type="date" id="hd" min="${YEAR}-01-01" max="${YEAR}-12-31" style="flex:1;min-width:140px"><input type="text" id="hn" placeholder="假日名稱" style="flex:1;min-width:120px"><select id="ht" style="width:auto"><option value="off">醫院公休</option><option value="open">開診</option></select><input type="text" id="hnote" placeholder="備註（選填）" style="flex:1;min-width:120px"><button onclick="addHol()">新增</button></div>
   <div style="margin-top:12px"><button class="sec" onclick="resetHol()">還原為醫院公告的行事曆</button></div></div>`}
+/* 行事曆 PDF：存在資料庫 config/calpdf（base64），不放進公開的程式碼儲存庫 */
+async function upCalPdf(inp){const f=inp.files&&inp.files[0];inp.value="";if(!f)return;
+  if(f.type!=="application/pdf"&&!/\.pdf$/i.test(f.name))return flash("請選擇 PDF 檔");if(f.size>700*1024)return flash("檔案太大（上限 700KB）");
+  const data=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(String(r.result).split(",")[1]);r.onerror=no;r.readAsDataURL(f)});
+  const rec={name:f.name,data,at:Date.now()};
+  try{if(store&&store.db)await store.db.doc("config/calpdf").set(rec);else localStorage.setItem("calpdf2027",JSON.stringify(rec));
+    if(await cfgSave({calPdf:{name:f.name,at:rec.at}}))notice("行事曆已上傳："+f.name)}catch(e){flash("上傳失敗，請稍後再試")}}
+async function dlCalPdf(){let rec=null;
+  try{if(store&&store.db){const s=await store.db.doc("config/calpdf").get();rec=s.exists?s.data():null}else rec=JSON.parse(localStorage.getItem("calpdf2027")||"null")}catch(e){}
+  if(!rec||!rec.data)return flash("尚未上傳行事曆 PDF");
+  const bin=atob(rec.data),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+  const dl=await claude.use("downloads");if(dl)await dl.save({filename:rec.name||(YEAR+"年度行事曆.pdf"),data:new Blob([u],{type:"application/pdf"})})}
 async function addHol(){const d=$("hd").value,n=$("hn").value.trim();if(!d||!n)return flash("請填日期與假日名稱");
   const l=cfg.holidays.filter(x=>x.d!==d);l.push({d,n,t:$("ht").value,note:$("hnote").value.trim()});if(await cfgSave({holidays:normHol(l)}))flash("已新增 "+n)}
 async function rmHol(d){const x=cfg.holidays.find(y=>y.d===d);if(!x||!await ask("確定刪除「"+dstr(d)+" "+x.n+"」？"))return;await cfgSave({holidays:cfg.holidays.filter(y=>y.d!==d)})}
