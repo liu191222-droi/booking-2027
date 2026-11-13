@@ -266,7 +266,7 @@ const myCode=()=>{const u=hostUser();return u?String(u.code):''};
 const now=new Date();
 const S={db:null,user:null,dl:undefined,demo:false,admin:false,ready:false,err:'',
   config:null,staff:[],sched:{},ym:ymOf(now.getMonth()===11?now.getFullYear()+1:now.getFullYear(),now.getMonth()===11?1:now.getMonth()+2), /* 預設為下個月 */
-  tab:'mine',tool:null,anchor:null,draft:null,myShifts:{},addShift:null,custom:{st:'09:00',en:'13:00',brk:0},me:'',fill:{shift:'',skipWk:true},unsubSched:null};
+  tab:'mine',tool:null,anchor:null,draft:null,myShifts:{},addShift:null,custom:{st:'09:00',en:'13:00',brk:0},me:'',fill:{shift:'',skipWk:true},unsubSched:null,hist:[],histSid:null,unsubHist:null};
 try{S.me=localStorage.getItem('pt-me')||''}catch(e){}
 const isDenied=e=>e&&(e.code==='permission_denied'||e.code==='permission-denied');
 
@@ -462,9 +462,10 @@ function viewMine(){
   let h=`<section class="panel"><div class="me">${S.admin?`<label class="f">我是（主管可切換人員）
     <select id="meSel"><option value="">選擇人員</option>${list.map(s=>`<option value="${s.id}" ${s.id===S.me?'selected':''}>${esc(s.code)}　${esc(s.name)}</option>`).join('')}</select></label>`:`<div><span class="muted small">我是</span><div style="font-size:18px;font-weight:700">${esc(me.code)}　${esc(me.name)}</div></div>`}`;
   if(me){const t=totals(me),doc=S.sched[me.id],c=cap(),pct=c?Math.min(100,t.hours/c*100):0;
-    h+=`<div class="stat"><span class="muted small">本月排班時數</span><b class="num">${fmtH(t.hours)}${c?`<span class="capof"> / ${c}</span>`:''}</b><span class="small muted">OFF ${t.R} 天</span></div></div>
+    h+=`<div class="stat"><span class="muted small">${roc(S.ym)}排班時數</span><b class="num">${fmtH(t.hours)}${c?`<span class="capof"> / ${c}</span>`:''}</b><span class="small muted">OFF ${t.R} 天</span></div></div>
     ${c?`<div class="capbar ${t.hours>=c?'full':''}" role="progressbar" aria-valuemin="0" aria-valuemax="${c}" aria-valuenow="${t.hours}"><span style="width:${pct}%"></span></div>`:''}
-    <div class="row">${statusPill(doc)}${hasDraft(me.id)?'<span class="pill draft">有未暫存的變更</span>':''}</div>`;
+    <div class="row">${statusPill(doc)}${hasDraft(me.id)?'<span class="pill draft">有未暫存的變更</span>':''}</div>
+    <div class="row"><button class="btn" data-act="gom" data-k="-1">‹ 前一個月</button><button class="btn ${S.ym===curYm()?'primary':''}" data-act="goym" data-ym="${curYm()}">本月</button><button class="btn ${S.ym===nextYm()?'primary':''}" data-act="goym" data-ym="${nextYm()}">下個月</button><button class="btn" data-act="gom" data-k="1">後一個月 ›</button></div>`;
   }else h+=`</div>`;
   h+=`</section>`;
   if(!me)return h;
@@ -479,8 +480,25 @@ function viewMine(){
   if(lk)h+=`<span class="small muted">本月已鎖定，無法修改。</span>`;
   else h+=`<button class="btn danger" data-act="clearAll" data-label="全部清除">全部清除</button><div class="row"><button class="btn" data-act="saveDraft" ${hasDraft(me.id)?'':'disabled'}>暫存</button><button class="btn primary" data-act="submit">送出</button></div>`;
   h+=`</div></section>`;
+  h+=monthListHtml(me)+histHtml(me);
   return h;
 }
+/* ---------- 本月排班明細、歷史排班紀錄 ---------- */
+const curYm=()=>ymOf(now.getFullYear(),now.getMonth()+1);
+const nextYm=()=>{const d=new Date(now.getFullYear(),now.getMonth()+1,1);return ymOf(d.getFullYear(),d.getMonth()+1)};
+function monthListHtml(me){const n=dim(S.ym),M=ymParts(S.ym).m,rows=[];
+  for(let d=1;d<=n;d++){const e=entry(me.id,d);if(!e)continue;const w=dow(S.ym,d);
+    rows.push(`<tr><td class="num">${M}/${d}（${WD[w]}）</td><td>${e.t==='w'?esc(shiftById(e.s,me.id)?shiftById(e.s,me.id).name:(e.code||'班')):e.t==='OFF'?(e.auto?'OFF（自動）':'OFF 排休'):esc(e.t)}</td><td class="num">${e.t==='w'?e.st+'–'+e.en:''}</td><td class="num">${e.t==='w'?fmtH(e.h)+' h':''}</td></tr>`)}
+  return `<section class="panel"><h2>${roc(S.ym)}排班明細<small>共 ${rows.length} 天有排班或排休</small></h2>${rows.length?`<div class="tbl"><table><thead><tr><th>日期</th><th>班別</th><th>時間</th><th>時數</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`:'<div class="empty">這個月還沒有排班。</div>'}</section>`}
+function subHist(sid){if(S.demo||!S.db||!sid||S.histSid===sid)return;if(S.unsubHist)S.unsubHist();S.histSid=sid;S.hist=[];
+  S.unsubHist=S.db.collection('sched').where('staffId','==',sid).onSnapshot(q=>{S.hist=q.docs.map(d=>d.data());render()},()=>{})}
+function histHtml(me){subHist(me.id);
+  const docs=(S.demo?Object.values(S.sched).filter(x=>x.staffId===me.id):S.hist).filter(x=>x&&x.month).sort((a,b)=>b.month.localeCompare(a.month));
+  const sum=x=>{let h=0,off=0,days=0;for(let d=1;d<=31;d++){const e=x['d'+d];if(!e)continue;days++;if(e.t==='w')h+=e.h||0;else if(e.t==='OFF'||e.t==='R')off++}return{h:Math.round(h*100)/100,off,days}};
+  const rows=docs.map(x=>{const t=sum(x),tag=x.month>curYm()?'預排':x.month===curYm()?'本月':'歷史';
+    return `<tr ${x.month===S.ym?'style="background:var(--accent-soft)"':''}><td><b>${roc(x.month)}</b> <span class="small muted">${tag}</span></td><td>${statusPill(x)}${(cfg().locked||{})[x.month]?' <span class="pill mode">已鎖定</span>':''}</td><td class="num">${fmtH(t.h)} h</td><td class="num">OFF ${t.off} 天</td><td>${x.month===S.ym?'<span class="small muted">檢視中</span>':`<button class="btn" data-act="goym" data-ym="${x.month}">查看</button>`}</td></tr>`}).join('');
+  return `<section class="panel"><h2>我的排班紀錄<small>歷史與之後月份的排班，按「查看」切換到該月</small></h2>${rows?`<div class="tbl"><table><thead><tr><th>月份</th><th>狀態</th><th>時數</th><th>排休</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<div class="empty">還沒有任何排班紀錄。</div>'}</section>`}
+async function goYm(ym){if(ym===S.ym)return;const a=ymParts(S.ym),b=ymParts(ym);await shiftMonth((b.y-a.y)*12+(b.m-a.m))}
 function meRO(me){return locked()}
 function statusPill(doc){if(!doc)return `<span class="pill none">尚未填寫</span>`;return doc.status==='sent'?`<span class="pill sent">已送出</span>`:`<span class="pill draft">暫存中</span>`}
 function shiftLbl(s){return `<span>${esc(s.name)}</span><small class="num">${s.start}–${s.end} · ${fmtH(hrs(s.start,s.end,s.brk))}h</small>`}
@@ -752,6 +770,8 @@ document.addEventListener('click',async e=>{
     if(await saveMyShifts(S.me,myShifts(S.me).concat(item))){S.addShift=null;S.tool='s:'+item.id;render();toast('已新增「'+name+'」')}return}
   if(a==='mvMyShift'){const l=myShifts(S.me).slice(),i=l.findIndex(x=>x.id===b.dataset.id),j=i+Number(b.dataset.dir);if(i<0||j<0||j>=l.length)return;[l[i],l[j]]=[l[j],l[i]];if(await saveMyShifts(S.me,l))render();return}
   if(a==='rmMyShift'){const id=b.dataset.id;if(!arm(b,'確認刪除'))return;if(await saveMyShifts(S.me,myShifts(S.me).filter(s=>s.id!==id))){if(S.tool==='s:'+id)S.tool=null;toast('已刪除常用班別，已排的班不受影響')}return}
+  if(a==='gom'){await shiftMonth(Number(b.dataset.k));window.scrollTo(0,0);return}
+  if(a==='goym'){await goYm(b.dataset.ym);window.scrollTo(0,0);return}
   if(a==='tool'){S.tool=S.tool===b.dataset.v?null:b.dataset.v;render();return}
   const meS=()=>S.staff.find(s=>s.id===S.me);
   if(a==='day'){const me=meS();if(me&&!locked())applyDay(me,Number(b.dataset.d),e.shiftKey);return}
