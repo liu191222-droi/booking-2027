@@ -334,6 +334,15 @@ async function savePw(){
 }
 
 /* admin */
+/* 管理員帳號 admin：密碼只存雜湊在資料庫 pw/admin，不寫進程式碼（公開儲存庫） */
+function adminAccHtml(){const on=!!pws.admin;
+  return `<div class="card"><h2>管理員帳號 admin</h2><div class="mut" style="margin-bottom:8px">登入帳號輸入「admin」即可進入後台（不需員編）。目前狀態：<b style="color:${on?"#007440":"var(--dn)"}">${on?"已啟用":"尚未設定密碼"}</b></div>
+  <div class="row" style="align-items:center"><input type="password" id="ap1" inputmode="numeric" maxlength="12" placeholder="${on?"新密碼":"設定密碼"}（只能輸入數字）" oninput="this.value=this.value.replace(/\D/g,'')" style="flex:1;min-width:150px"><input type="password" id="ap2" inputmode="numeric" maxlength="12" placeholder="再輸入一次" oninput="this.value=this.value.replace(/\D/g,'')" style="flex:1;min-width:150px"><button onclick="setAdminPw()">${on?"修改密碼":"啟用 admin"}</button>${on&&user.code!=="admin"?`<button class="del" onclick="offAdmin()">停用 admin</button>`:""}</div></div>`}
+async function setAdminPw(){const a=$("ap1").value,b=$("ap2").value;
+  if(!/^\d+$/.test(a))return flash("密碼只能輸入數字");if(a.length<4)return flash("密碼至少 4 碼");if(a!==b)return flash("兩次輸入不一致");
+  try{await store.setPw("admin",await sha("admin:"+a));if(local){pws.admin=await sha("admin:"+a);render()}flash("admin 密碼已設定")}catch(e){flash("儲存失敗")}}
+async function offAdmin(){if(!await ask("確定停用 admin 帳號？停用後無法用 admin 登入，之後可再重新設定密碼啟用。"))return;
+  try{await store.resetPw("admin");if(local){delete pws.admin;render()}flash("已停用 admin")}catch(e){flash("停用失敗")}}
 function adminView(){
   const tabs=Array.from({length:12},(_,i)=>`<button class="${i===month?"on":""}" onclick="month=${i};render()">${i+1}月${bookings.filter(b=>(b.date||"").startsWith(`${YEAR}-${pad(i+1)}`)).length?`<small style="display:block;font-size:11px;opacity:.85">${bookings.filter(b=>(b.date||"").startsWith(`${YEAR}-${pad(i+1)}`)).length} 筆</small>`:""}</button>`).join("");
   const mp=`${YEAR}-${pad(month+1)}`;
@@ -354,7 +363,7 @@ function adminView(){
   adminTab==="cal"?holHtml():adminTab==="night"?nightAdminHtml():adminTab==="all"?overviewHtml():adminTab==="opt"?`${optCardsHtml()}
   <div class="card"><h2>不開放預約的日期</h2><div class="mut" style="margin-bottom:8px">國定假日或全院活動日，這些日子在預約月曆上會無法選擇。</div><div class="chips">${(cfg.blocked||[]).map(d=>`<span class="chip">${esc(dstr(d))}<button onclick="rmBlock('${d}')">×</button></span>`).join("")}</div><div class="row"><input type="date" id="bd" min="${YEAR}-01-01" max="${YEAR}-12-31" style="flex:1"><button onclick="addBlock()">新增</button></div></div>
   <div class="card"><h2>預約月份開關</h2><div class="mut" style="margin-bottom:8px">每月 1 日起自動停止該月的預約與修改；可在這裡手動開啟或關閉。</div><div class="scroll"><table><tr><th>月份</th><th>狀態</th><th></th></tr>${mrows}</table></div></div>`:
-  `<div class="card"><h2>帳號管理（共 ${Object.keys(STAFF).length} 人）</h2><div class="row" style="margin-bottom:10px;align-items:center"><button class="sec" onclick="exportStaff()">📥 匯出 Excel</button>${staffStatHtml()}</div><div class="row" style="margin-bottom:10px"><input type="text" id="sc" placeholder="員編" style="flex:1;min-width:110px"><input type="text" id="sn" placeholder="姓名" style="flex:1;min-width:110px">${shiftSel("ss","白班")}${catSel("sa","藥師")}<button onclick="addStaff()">新增員工</button></div><div class="scroll"><table><tr><th>員編</th><th>姓名</th><th>班別</th><th>類別</th><th>密碼</th><th></th></tr>${staff}</table></div></div>`);
+  `<div class="card"><h2>帳號管理（共 ${Object.keys(STAFF).length} 人）</h2><div class="row" style="margin-bottom:10px;align-items:center"><button class="sec" onclick="exportStaff()">📥 匯出 Excel</button>${staffStatHtml()}</div><div class="row" style="margin-bottom:10px"><input type="text" id="sc" placeholder="員編" style="flex:1;min-width:110px"><input type="text" id="sn" placeholder="姓名" style="flex:1;min-width:110px">${shiftSel("ss","白班")}${catSel("sa","藥師")}<button onclick="addStaff()">新增員工</button></div><div class="scroll"><table><tr><th>員編</th><th>姓名</th><th>班別</th><th>類別</th><th>密碼</th><th></th></tr>${staff}</table></div></div>${adminAccHtml()}`);
 }
 var onlyNo=false;
 function holHtml(){
