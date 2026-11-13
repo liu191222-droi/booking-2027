@@ -626,6 +626,7 @@ function aggregate(yr,mo){
     const d=JSON.parse(LS.getItem(k)||'null');if(!d||!d.h||String(d.h.yr)!==yr||String(d.h.mo)!==mo||!(d.rows&&d.rows.length))continue;
     const id=d.h.empid||k.slice(11).split('@')[0];map[id]={id,name:d.h.name||uname(id),rows:d.rows,src:'本機',key:k}}}catch(e){}
   const m=loadSum()[yr+'-'+mo]||{};Object.keys(m).forEach(id=>{if(m[id]&&m[id].rows&&m[id].rows.length)map[id]={id,name:m[id].name||uname(id),rows:m[id].rows,src:'匯入'}});
+  delete map.test; // 測試帳號不列入審核與總表
   return Object.keys(map).map(k=>map[k]).sort((a,b)=>String(a.id).localeCompare(String(b.id),'zh-Hant',{numeric:true}));
 }
 function calc(rows){

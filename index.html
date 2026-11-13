@@ -132,7 +132,9 @@ window.claude={use:async n=>{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const YEAR=2027, ADMINS=["1507175"]; /* 系統預設管理者；其他管理者由後台「帳號管理」指定，存在 config/main 的 admins */
-const isMgr=c=>ADMINS.includes(c)||((cfg&&cfg.admins)||[]).includes(c);
+/* 測試帳號 test：可進入所有子系統（大夜／兼職排班、加班費、預約），但不能進後台，也不列入員工人數與報表；需先在「帳號管理」新增員編 test */
+const TEST="test",isTest=c=>c===TEST,realStaff=()=>Object.keys(STAFF).filter(c=>c!==TEST);
+const isMgr=c=>c!==TEST&&(ADMINS.includes(c)||((cfg&&cfg.admins)||[]).includes(c));
 const SHIFTS=["白班","小夜班","兩頭班","大夜班"];
 const defShift=c=>"白班";
 const shiftSel=(id,v)=>`<select id="${id}" style="flex:1;min-width:100px">${SHIFTS.map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("")}</select>`;
@@ -339,13 +341,13 @@ async function savePw(){
 function adminAccHtml(){const on=!!pws.admin,me=user.code==="admin";
   const mg=[...ADMINS.map(c=>({c,fix:true})),...(cfg.admins||[]).filter(c=>!ADMINS.includes(c)).map(c=>({c}))];
   const chips=mg.map(x=>`<span class="chip">${esc(x.c)} ${esc(STAFF[x.c]||"（不在員工名單）")}${x.fix?` <small class="mut">系統預設</small>`:`<button onclick="rmMgr('${esc(x.c)}')" title="取消管理者">×</button>`}</span>`).join("");
-  const opts=Object.keys(STAFF).filter(c=>!isMgr(c)).map(c=>`<option value="${esc(c)}">${esc(c)} ${esc(STAFF[c])}</option>`).join("");
+  const opts=realStaff().filter(c=>!isMgr(c)).map(c=>`<option value="${esc(c)}">${esc(c)} ${esc(STAFF[c])}</option>`).join("");
   const pwRow=(me||!on)?`<div class="row" style="align-items:center"><input type="password" id="ap1" inputmode="numeric" maxlength="12" placeholder="${on?"新密碼":"設定密碼"}（只能輸入數字）" oninput="this.value=this.value.replace(/\\D/g,'')" style="flex:1;min-width:150px"><input type="password" id="ap2" inputmode="numeric" maxlength="12" placeholder="再輸入一次" oninput="this.value=this.value.replace(/\\D/g,'')" style="flex:1;min-width:150px"><button onclick="setAdminPw()">${on?"修改密碼":"啟用 admin"}</button>${on&&me?`<button class="del" onclick="offAdmin()">停用 admin</button>`:""}</div>`
     :`<div class="mut">admin 已啟用；只有 admin 本人可以修改密碼或停用，管理者無法變更或刪除 admin。</div>`;
   return `<div class="card"><h2>管理員帳號 admin（最高權限）</h2><div class="mut" style="margin-bottom:8px">登入帳號輸入「admin」即可進入後台（不需員編）。目前狀態：<b style="color:${on?"#007440":"var(--dn)"}">${on?"已啟用":"尚未設定密碼"}</b></div>${pwRow}</div>
   <div class="card"><h2>管理者（共 ${mg.length} 人）</h2><div class="mut" style="margin-bottom:8px">管理者與 admin 有相同的後台權限（含指定管理者），但不能修改或刪除 admin。被指定或取消的人，下次登入時生效。</div>
   <div class="chips">${chips}</div><div class="row" style="align-items:center"><select id="mgSel" style="flex:1;min-width:180px"><option value="">選擇員工</option>${opts}</select><button onclick="addMgr()">指定為管理者</button></div></div>`}
-async function addMgr(){const c=$("mgSel").value;if(!c)return flash("請選擇員工");if(isMgr(c))return flash("已經是管理者");
+async function addMgr(){const c=$("mgSel").value;if(!c)return flash("請選擇員工");if(isTest(c))return flash("測試帳號不能設為管理者");if(isMgr(c))return flash("已經是管理者");
   if(!await ask("確定把「"+c+" "+(STAFF[c]||"")+"」指定為管理者？"))return;if(await cfgSave({admins:[...(cfg.admins||[]),c]}))flash("已指定 "+(STAFF[c]||c)+" 為管理者")}
 async function rmMgr(c){if(ADMINS.includes(c))return flash("系統預設管理者無法取消");
   if(!await ask("確定取消「"+c+" "+(STAFF[c]||"")+"」的管理者權限？"+(c===user.code?"（這是你自己，下次登入後就不能進後台）":"")))return;
@@ -376,7 +378,7 @@ function adminView(){
   adminTab==="cal"?holHtml():adminTab==="night"?nightAdminHtml():adminTab==="all"?overviewHtml():adminTab==="opt"?`${optCardsHtml()}
   <div class="card"><h2>不開放預約的日期</h2><div class="mut" style="margin-bottom:8px">國定假日或全院活動日，這些日子在預約月曆上會無法選擇。</div><div class="chips">${(cfg.blocked||[]).map(d=>`<span class="chip">${esc(dstr(d))}<button onclick="rmBlock('${d}')">×</button></span>`).join("")}</div><div class="row"><input type="date" id="bd" min="${YEAR}-01-01" max="${YEAR}-12-31" style="flex:1"><button onclick="addBlock()">新增</button></div></div>
   <div class="card"><h2>預約月份開關</h2><div class="mut" style="margin-bottom:8px">每月 1 日起自動停止該月的預約與修改；可在這裡手動開啟或關閉。</div><div class="scroll"><table><tr><th>月份</th><th>狀態</th><th></th></tr>${mrows}</table></div></div>`:
-  `<div class="card"><h2>帳號管理（共 ${Object.keys(STAFF).length} 人）</h2><div class="row" style="margin-bottom:10px;align-items:center"><button class="sec" onclick="exportStaff()">📥 匯出 Excel</button>${staffStatHtml()}</div><div class="row" style="margin-bottom:10px"><input type="text" id="sc" placeholder="員編" style="flex:1;min-width:110px"><input type="text" id="sn" placeholder="姓名" style="flex:1;min-width:110px">${shiftSel("ss","白班")}${catSel("sa","藥師")}<button onclick="addStaff()">新增員工</button></div><div class="scroll"><table><tr><th>員編</th><th>姓名</th><th>班別</th><th>類別</th><th>密碼</th><th></th></tr>${staff}</table></div></div>${adminAccHtml()}`);
+  `<div class="card"><h2>帳號管理（共 ${realStaff().length} 人${STAFF[TEST]?"，另有測試帳號 test":""}）</h2><div class="row" style="margin-bottom:10px;align-items:center"><button class="sec" onclick="exportStaff()">📥 匯出 Excel</button>${staffStatHtml()}</div><div class="row" style="margin-bottom:10px"><input type="text" id="sc" placeholder="員編" style="flex:1;min-width:110px"><input type="text" id="sn" placeholder="姓名" style="flex:1;min-width:110px">${shiftSel("ss","白班")}${catSel("sa","藥師")}<button onclick="addStaff()">新增員工</button></div><div class="scroll"><table><tr><th>員編</th><th>姓名</th><th>班別</th><th>類別</th><th>密碼</th><th></th></tr>${staff}</table></div></div>${adminAccHtml()}`);
 }
 var onlyNo=false;
 function holHtml(){
@@ -467,11 +469,11 @@ function optCardsHtml(){
   <div class="card ph"><h2>預約項目 ④ 特休申請</h2><div class="mut">預留位置，之後會接上「特休申請」程式。目前尚未啟用，同事的預約畫面不會顯示。</div></div>`}
 function overviewHtml(){
   const by={};bookings.forEach(b=>{(by[b.code]=by[b.code]||[]).push(b)});
-  const codes=Object.keys(STAFF),done=codes.filter(c=>by[c]).length;
+  const codes=realStaff(),done=codes.filter(c=>by[c]).length;
   const rows=codes.filter(c=>!onlyNo||!by[c]).map(c=>{
     const l=(by[c]||[]).sort((a,b)=>a.date.localeCompare(b.date));
     return `<tr><td>${c}</td><td>${esc(STAFF[c])}</td><td>${l.length?l.length:"<span class='mut'>未預約</span>"}</td><td>${l.map(b=>esc(b.date+" "+(b.slot||"")+" "+(b.type==="生日體檢"?"🎂 ":"")+b.type+(b.note?"（"+b.note+"）":""))).join("<br>")}</td></tr>`}).join("");
-  return `<div class="card"><h2>全員預約情形</h2><div class="mut" style="margin-bottom:8px">共 ${codes.length} 人，已預約 ${done} 人，未預約 ${codes.length-done} 人，總計 ${bookings.length} 筆</div>
+  return `<div class="card"><h2>全員預約情形</h2><div class="mut" style="margin-bottom:8px">共 ${codes.length} 人，已預約 ${done} 人，未預約 ${codes.length-done} 人，總計 ${bookings.filter(b=>b.code!==TEST).length} 筆</div>
   <label class="opt"><input type="checkbox" ${onlyNo?"checked":""} onchange="onlyNo=this.checked;render()"> 只看未預約的人</label>
   <div class="scroll"><table><tr><th>員編</th><th>姓名</th><th>筆數</th><th>預約內容</th></tr>${rows}</table></div></div>`}
 const NICK={"1513095":"主任"};
@@ -485,7 +487,7 @@ function ask(m){return new Promise(r=>{const d=document.createElement("div");d.s
   d.querySelector("p").textContent=m;document.body.appendChild(d);
   d.querySelector("#an").onclick=()=>{d.remove();r(false)};d.querySelector("#ay").onclick=()=>{d.remove();r(true)}})}
 function staffStatHtml(){
-  const v=Object.keys(STAFF).map(c=>CAT[c]||defCat(c)),n=k=>v.filter(x=>x===k).length;
+  const v=realStaff().map(c=>CAT[c]||defCat(c)),n=k=>v.filter(x=>x===k).length;
   return `<div class="st"><div class="hl"><span>總員工</span><b>${v.length}</b></div><div class="hl" title="藥師＋兼職藥師"><span>全部藥師</span><b>${n("藥師")+n("兼職藥師")}</b></div><div><span>藥師</span><b>${n("藥師")}</b></div><div><span>兼職藥師</span><b>${n("兼職藥師")}</b></div><div><span>助理員</span><b>${n("助理員")}</b></div></div>`}
 async function exportStaff(){
   if(typeof XLSX==="undefined")return flash("Excel 元件載入失敗，請重新整理後再試");
@@ -536,8 +538,9 @@ let otFrom="form",otGo="";
 function openOT(from,adm){otFrom=from;otGo=adm?"admin":"";view="ot";render();window.scrollTo(0,0)}
 function otBack(){view=otFrom;render();window.scrollTo(0,0)}
 function otView(){return `<iframe id="otf" src="overtime.html${otGo?"?go="+otGo:""}" style="width:100%;height:calc(100vh - 110px);min-height:560px;border:0;border-radius:12px;background:#fff"></iframe>`}
-window.OTHOST={user:()=>user,staff:()=>STAFF,db:()=>store&&store.db,call:()=>user?callName(user):"",back:otBack,logout:()=>{logout();window.scrollTo(0,0)}};
-function render(){if(view==="ot"&&document.getElementById("otf"))return;if(view==="pt"&&document.getElementById("ptf"))return;render0();$("app").classList.toggle("wide",view==="ot"||view==="pt");if(view==="form"){applyFill();updSlot()}}
+window.OTHOST={user:()=>user,staff:()=>{const o={};realStaff().forEach(c=>o[c]=STAFF[c]);if(user&&isTest(user.code)&&STAFF[TEST])o[TEST]=STAFF[TEST];return o},db:()=>store&&store.db,call:()=>user?callName(user):"",back:otBack,logout:()=>{logout();window.scrollTo(0,0)}};
+function render(){if(view==="admin"&&!(user&&user.admin))view=user?"form":"login"; /* 非管理者（含 test）不能進後台 */
+  if(view==="ot"&&document.getElementById("otf"))return;if(view==="pt"&&document.getElementById("ptf"))return;render0();$("app").classList.toggle("wide",view==="ot"||view==="pt");if(view==="form"){applyFill();updSlot()}}
 async function addBlock(){const v=$("bd").value;if(!v)return;if(!v.startsWith(YEAR+"-"))return flash("日期必須在 "+YEAR+" 年內");const b=cfg.blocked||[];if(b.includes(v))return flash("已設定過");const c={...cfg,blocked:[...b,v].sort()};try{await store.saveCfg(c);cfg=c;render()}catch(e){flash("儲存失敗")}}
 async function rmBlock(d){const c={...cfg,blocked:(cfg.blocked||[]).filter(x=>x!==d)};try{await store.saveCfg(c);cfg=c;render()}catch(e){flash("儲存失敗")}}
 function render0(){
@@ -561,13 +564,13 @@ const nWc=i=>i===5?"n-sat":i===6?"n-sun":"";
 const nShift=(m,k)=>{const[y,mo]=m.split("-").map(Number);const d=new Date(y,mo-1+k,1);return d.getFullYear()+"-"+pad(d.getMonth()+1)};
 const nOpts=(()=>{const t=new Date();let y=t.getFullYear(),m=t.getMonth()+1;const o=[];for(let i=0;i<7;i++){o.push(y+"-"+pad(m));m++;if(m>12){m=1;y++}}return o})();
 let nMonth=nOpts[1],nTab="staff",nClosed=false,nAllAvail={},nSchedAll={},nSub="",nUns=[],nEditing=true,nDirty=false,nMine=new Set(),nBoss=null,nBossDirty=false,nMsg="";
-const nList=()=>Object.keys(STAFF).filter(c=>SHIFT[c]==="大夜班");
+const nList=()=>realStaff().filter(c=>SHIFT[c]==="大夜班").concat(user&&user.code===TEST&&STAFF[TEST]?[TEST]:[]);
 const nName=c=>callName({code:c,name:STAFF[c]||c});
 const nMeId=()=>user&&nList().includes(user.code)?user.code:"";
 const nAv=()=>nAllAvail[nMonth]||(nAllAvail[nMonth]={});
 const nRun=(s,d)=>{let a=d,b=d;while(s.has(a-1))a--;while(s.has(b+1))b++;return b-a+1};
 /* 兼職藥師排班：只有人員類別為「兼職藥師」的人（與管理者）可以進入；內容在 parttime.html（以 iframe 嵌入，透過 PTHOST 取得登入者與資料庫） */
-function ptAllowed(){return !!user&&(user.admin||CAT[user.code]==="兼職藥師")}
+function ptAllowed(){return !!user&&(user.admin||isTest(user.code)||CAT[user.code]==="兼職藥師")}
 let ptAdm=false;
 function openPT(adm){if(!ptAllowed()){notice("限兼職藥師使用");return}ptAdm=!!(adm&&user.admin);view="pt";render();window.scrollTo(0,0)}
 function ptView(){
@@ -575,8 +578,8 @@ function ptView(){
   const head=`<div class="top"><div><b>🕒 ${ptAdm?"兼職藥師排班管理":"兼職藥師排班"}</b></div><div class="row">${ptAdm?`<button class="sec" onclick="go('admin')">返回後台管理</button>`:`<button class="sec" onclick="go('form')">其它假別預約畫面</button>`}<button class="sec" onclick="logout()">登出</button></div></div>`;
   if(!store||!store.db)return `${head}<div class="card">目前無法連線資料庫（單機模式），兼職藥師排班需要連線資料庫才能使用。</div>`;
   return `${head}<iframe id="ptf" src="parttime.html${ptAdm?"?mode=admin":""}" style="width:100%;height:calc(100vh - 150px);min-height:560px;border:0;border-radius:12px;background:#fff"></iframe>`}
-window.PTHOST={holidays:()=>cfg.holidays,user:()=>user,db:()=>store&&store.db,ptStaff:()=>Object.keys(STAFF).filter(c=>CAT[c]==="兼職藥師").map(c=>({code:c,name:STAFF[c]}))};
-function nightAllowed(){return !!user&&(user.admin||SHIFT[user.code]==="大夜班")}
+window.PTHOST={holidays:()=>cfg.holidays,user:()=>user,db:()=>store&&store.db,ptStaff:()=>realStaff().filter(c=>CAT[c]==="兼職藥師").concat(user&&isTest(user.code)&&STAFF[TEST]?[TEST]:[]).map(c=>({code:c,name:STAFF[c]}))};
+function nightAllowed(){return !!user&&(user.admin||isTest(user.code)||SHIFT[user.code]==="大夜班")}
 function openNight(){if(!nightAllowed()){notice("限大夜包班人員使用");return}nMsg="";nTab="staff";nResetMine();view="night";render();window.scrollTo(0,0)}
 function nResetMine(){const me=nMeId();nDirty=false;nMine=new Set((me&&nAv()[me])||[]);nEditing=!(me&&nAv()[me])}
 function nWorkOf(mk,c){const n=nDim(mk),w=new Set(),sc=nSchedAll[mk];
