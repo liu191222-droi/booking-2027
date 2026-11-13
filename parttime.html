@@ -462,10 +462,10 @@ function viewMine(){
   let h=`<section class="panel"><div class="me">${S.admin?`<label class="f">我是（主管可切換人員）
     <select id="meSel"><option value="">選擇人員</option>${list.map(s=>`<option value="${s.id}" ${s.id===S.me?'selected':''}>${esc(s.code)}　${esc(s.name)}</option>`).join('')}</select></label>`:`<div><span class="muted small">我是</span><div style="font-size:18px;font-weight:700">${esc(me.code)}　${esc(me.name)}</div></div>`}`;
   if(me){const t=totals(me),doc=S.sched[me.id],c=cap(),pct=c?Math.min(100,t.hours/c*100):0;
-    h+=`<div class="stat"><span class="muted small">${roc(S.ym)}排班時數</span><b class="num">${fmtH(t.hours)}${c?`<span class="capof"> / ${c}</span>`:''}</b><span class="small muted">OFF ${t.R} 天</span></div></div>
+    h+=`<div class="stat"><span style="font-size:18px;font-weight:700;color:var(--ink)">${roc(S.ym)}排班時數</span><b class="num">${fmtH(t.hours)}${c?`<span class="capof"> / ${c}</span>`:''}</b><span class="small muted">OFF ${t.R} 天</span></div></div>
     ${c?`<div class="capbar ${t.hours>=c?'full':''}" role="progressbar" aria-valuemin="0" aria-valuemax="${c}" aria-valuenow="${t.hours}"><span style="width:${pct}%"></span></div>`:''}
     <div class="row">${statusPill(doc)}${hasDraft(me.id)?'<span class="pill draft">有未暫存的變更</span>':''}</div>
-    <div class="row"><button class="btn" data-act="gom" data-k="-1">‹ 前一個月</button><button class="btn ${S.ym===curYm()?'primary':''}" data-act="goym" data-ym="${curYm()}">本月</button><button class="btn ${S.ym===nextYm()?'primary':''}" data-act="goym" data-ym="${nextYm()}">下個月</button><button class="btn" data-act="gom" data-k="1">後一個月 ›</button></div>`;
+    <div class="row"><button class="btn" data-act="gom" data-k="-1">‹ ${roc(addYm(S.ym,-1))}</button><button class="btn primary" disabled style="opacity:1;cursor:default">${roc(S.ym)}</button><button class="btn" data-act="gom" data-k="1">${roc(addYm(S.ym,1))} ›</button></div>`;
   }else h+=`</div>`;
   h+=`</section>`;
   if(!me)return h;
@@ -478,13 +478,14 @@ function viewMine(){
   h+=`<label class="f">備註<textarea id="myNote" rows="2" maxlength="300" placeholder="例如：11/20 下午要上課、希望集中排早班…" ${ro?'readonly':''}>${esc(note)}</textarea></label>`;
   h+=`<div class="actions">`;
   if(lk)h+=`<span class="small muted">本月已鎖定，無法修改。</span>`;
-  else h+=`<button class="btn danger" data-act="clearAll" data-label="全部清除">全部清除</button><div class="row"><button class="btn" data-act="saveDraft" ${hasDraft(me.id)?'':'disabled'}>暫存</button><button class="btn primary" data-act="submit">送出</button></div>`;
+  else h+=`<button class="btn danger" data-act="clearAll" data-label="全部清除">全部清除</button><div class="row"><button class="btn" data-act="saveDraft" ${hasDraft(me.id)?'':'disabled'}>暫存</button>${sent?`<button class="btn primary" data-act="reopen">修改</button>`:`<button class="btn primary" data-act="submit">送出</button>`}</div>`;
   h+=`</div></section>`;
   h+=monthListHtml(me)+histHtml(me);
   return h;
 }
 /* ---------- 本月排班明細、歷史排班紀錄 ---------- */
 const curYm=()=>ymOf(now.getFullYear(),now.getMonth()+1);
+const addYm=(ym,k)=>{const{y,m}=ymParts(ym),d=new Date(y,m-1+k,1);return ymOf(d.getFullYear(),d.getMonth()+1)};
 const nextYm=()=>{const d=new Date(now.getFullYear(),now.getMonth()+1,1);return ymOf(d.getFullYear(),d.getMonth()+1)};
 function monthListHtml(me){const n=dim(S.ym),M=ymParts(S.ym).m,rows=[];
   for(let d=1;d<=n;d++){const e=entry(me.id,d);if(!e)continue;const w=dow(S.ym,d);
