@@ -492,7 +492,7 @@ function addShiftHtml(){
   const ed=!!A.editId,picks=ed?[]:cfg().shifts.filter(s=>!inMine(S.me,s));
   return `${picks.length?`<div class="custom picks"><span class="small muted">從主管的班別挑選，點一下就加入：</span><div class="tools">${picks.map(s=>`<button class="tool" data-act="pickDept" data-id="${s.id}">${shiftLbl(s)}</button>`).join('')}</div></div>`:''}<div class="custom"><span class="small muted" style="flex-basis:100%">${ed?`編輯「${esc(A.orig)}」：`:picks.length?'或自己輸入新的班別：':'輸入新的班別：'}</span><label class="f">班別名稱<input type="text" id="psName" value="${esc(A.name)}" placeholder="例如：週三下午" maxlength="12" style="width:150px"></label>
       <label class="f">上班<input type="text" class="tm" id="psSt" value="${A.st}" inputmode="numeric" maxlength="9" placeholder="例 0830" style="width:96px"></label><label class="f">下班<input type="text" class="tm" id="psEn" value="${A.en}" inputmode="numeric" maxlength="9" placeholder="例 1230" style="width:96px"></label>
-      <label class="f">休息<select id="psBrk">${[...new Set([30,60,90,120,150,180,Number(A.brk)>0?Number(A.brk):30])].sort((x,y)=>x-y).map(m=>`<option value="${m}" ${Number(A.brk)===m?'selected':''}>${m?(m%60===0?(m/60)+' 小時':m%30===0?((m/60|0)?(m/60|0)+' 小時 ':'')+'30 分':m+' 分'):'不休息'}</option>`).join('')}</select></label>
+      <label class="f">休息<select id="psBrk">${[...new Set([0,30,60,90,120,150,180,Number(A.brk)||0])].sort((x,y)=>x-y).map(m=>`<option value="${m}" ${Number(A.brk)===m?'selected':''}>${m?(m%60===0?(m/60)+' 小時':m%30===0?((m/60|0)?(m/60|0)+' 小時 ':'')+'30 分':m+' 分'):'不休息'}</option>`).join('')}</select></label>
       <span class="small muted" style="flex-basis:100%">時間以半小時為單位；直接輸入 4 個數字，例如 0830 代表 08:30，分鐘會自動調整為 00 或 30。</span>
       <span class="small muted">時數 <b class="num" id="psH">${fmtH(hh)}</b> 小時</span>
       <div class="row"><button class="btn primary" data-act="saveMyShift">${ed?'儲存修改':'儲存並加入班別'}</button><button class="btn" data-act="cancelMyShift">取消</button></div></div>`}
@@ -739,7 +739,7 @@ document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
   if(a==='scrim'){if(e.target===b)closeModal();return}
   if(a==='close'){closeModal();return}
-  if(a==='editMyShift'){const sh=myShifts(S.me).find(x=>x.id===b.dataset.id);if(!sh)return;S.addShift={editId:sh.id,orig:sh.name,name:sh.name,st:sh.start,en:sh.end,brk:sh.brk||30};render();setTimeout(()=>{const i=document.getElementById('psName');if(i){i.focus();i.select()}});return}
+  if(a==='editMyShift'){const sh=myShifts(S.me).find(x=>x.id===b.dataset.id);if(!sh)return;S.addShift={editId:sh.id,orig:sh.name,name:sh.name,st:sh.start,en:sh.end,brk:Number(sh.brk)||0};render();setTimeout(()=>{const i=document.getElementById('psName');if(i){i.focus();i.select()}});return}
   if(a==='addMyShift'){S.addShift={name:'',st:'09:00',en:'13:00',brk:30};render();setTimeout(()=>{const i=document.getElementById('psName');if(i)i.focus()});return}
   if(a==='pickDept'){const sh=cfg().shifts.find(x=>x.id===b.dataset.id);if(!sh||!S.me)return;if(inMine(S.me,sh)){toast('已在我的常用班別');return}
     const item={id:'p'+Date.now().toString(36),fromId:sh.id,code:sh.code,name:sh.name,start:sh.start,end:sh.end,brk:sh.brk||0};
