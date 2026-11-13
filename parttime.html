@@ -100,6 +100,7 @@ label.f>input,label.f>select{color:var(--ink);font-size:15px}
 .star:hover{background:var(--accent);color:var(--accent-ink)}
 .custom.picks{flex-direction:column;align-items:stretch}
 .guide{background:var(--accent-soft);border-radius:9px;padding:10px 12px;font-size:14px;line-height:1.7}
+.mvs{position:absolute;bottom:-8px;left:-6px;display:flex;gap:2px;z-index:1}.mv{height:18px;min-width:20px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--accent);font-size:12px;font-weight:700;line-height:1;padding:0 5px;cursor:pointer}.mv:hover{border-color:var(--accent)}
 .ed{position:absolute;bottom:-8px;right:-6px;height:18px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--accent);font-size:10.5px;line-height:1;padding:0 6px;cursor:pointer;z-index:1}
 .ed:hover{border-color:var(--accent)}
 .tool.mine{padding-bottom:10px}
@@ -279,6 +280,11 @@ function toMin(t){const[a,b]=(t||'0:0').split(':').map(Number);return a*60+b}
 function hrs(st,en,brk){let m=toMin(en)-toMin(st);if(m<=0)m+=1440;m-=Number(brk)||0;return Math.max(0,Math.round(m/60*100)/100)}
 function fmtH(h){return (Math.round(h*100)/100).toString()}
 const cfg=()=>S.config||DEFAULT_CONFIG;
+/* 常用班別的時間：由左往右輸入（第一個數字在十位數），自動補冒號；離開欄位時調整為整點或半點 */
+function fmtTyping(v){let d=String(v||'').replace(/\D/g,'');if(d.length>4)d=d.slice(4,8);/* 欄位已滿又繼續輸入：從頭重新輸入 */return d.length>2?d.slice(0,2)+':'+d.slice(2):d}
+function normTime(v){let d=String(v||'').replace(/\D/g,'');if(!d)return '';if(d.length<=2)d=d.padStart(2,'0')+'00';else if(d.length===3)d='0'+d;
+  let h=+d.slice(0,2),m=+d.slice(2,4);if(h>23||m>59)return '';if(m<15)m=0;else if(m<45)m=30;else{m=0;h=(h+1)%24}
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')}
 const myShifts=sid=>(S.myShifts[sid]||[]);
 const shiftById=(id,sid)=>cfg().shifts.find(s=>s.id===id)||(sid?myShifts(sid):Object.values(S.myShifts).flat()).find(s=>s.id===id);
 const locked=()=>!!(cfg().locked||{})[S.ym];
@@ -478,26 +484,27 @@ function viewMine(){
 function meRO(me){return locked()}
 function statusPill(doc){if(!doc)return `<span class="pill none">尚未填寫</span>`;return doc.status==='sent'?`<span class="pill sent">已送出</span>`:`<span class="pill draft">暫存中</span>`}
 function shiftLbl(s){return `<span>${esc(s.name)}</span><small class="num">${s.start}–${s.end} · ${fmtH(hrs(s.start,s.end,s.brk))}h</small>`}
-function myToolHtml(s,selectable){const T=S.tool;
-  return `<div class="toolwrap">${selectable?`<button class="tool mine" data-act="tool" data-v="s:${s.id}" aria-pressed="${T==='s:'+s.id}">${shiftLbl(s)}<em class="mytag">我的</em></button>`:`<div class="tool mine">${shiftLbl(s)}<em class="mytag">我的</em></div>`}<button class="x" data-act="rmMyShift" data-label="✕" data-id="${s.id}" aria-label="刪除常用班別 ${esc(s.name)}">✕</button><button class="ed" data-act="editMyShift" data-id="${s.id}" aria-label="編輯常用班別 ${esc(s.name)}">編輯</button></div>`}
+function myToolHtml(s,selectable,i,n){const T=S.tool;const mv=n>1?`<span class="mvs">${i>0?`<button class="mv" data-act="mvMyShift" data-id="${s.id}" data-dir="-1" title="往前移" aria-label="把 ${esc(s.name)} 往前移">‹</button>`:''}${i<n-1?`<button class="mv" data-act="mvMyShift" data-id="${s.id}" data-dir="1" title="往後移" aria-label="把 ${esc(s.name)} 往後移">›</button>`:''}</span>`:'';
+  return `<div class="toolwrap">${selectable?`<button class="tool mine" data-act="tool" data-v="s:${s.id}" aria-pressed="${T==='s:'+s.id}">${shiftLbl(s)}<em class="mytag">我的</em></button>`:`<div class="tool mine">${shiftLbl(s)}<em class="mytag">我的</em></div>`}<button class="x" data-act="rmMyShift" data-label="✕" data-id="${s.id}" aria-label="刪除常用班別 ${esc(s.name)}">✕</button><button class="ed" data-act="editMyShift" data-id="${s.id}" aria-label="編輯常用班別 ${esc(s.name)}">編輯</button>${mv}</div>`}
 function inMine(sid,s){return myShifts(sid).some(m=>m.fromId===s.id||(m.start===s.start&&m.end===s.end&&(m.brk||0)===(s.brk||0)&&m.name===s.name))}
 function addShiftHtml(){
   const A=S.addShift;if(!A)return '';const hh=hrs(A.st,A.en,A.brk);
   const ed=!!A.editId,picks=ed?[]:cfg().shifts.filter(s=>!inMine(S.me,s));
   return `${picks.length?`<div class="custom picks"><span class="small muted">從主管的班別挑選，點一下就加入：</span><div class="tools">${picks.map(s=>`<button class="tool" data-act="pickDept" data-id="${s.id}">${shiftLbl(s)}</button>`).join('')}</div></div>`:''}<div class="custom"><span class="small muted" style="flex-basis:100%">${ed?`編輯「${esc(A.orig)}」：`:picks.length?'或自己輸入新的班別：':'輸入新的班別：'}</span><label class="f">班別名稱<input type="text" id="psName" value="${esc(A.name)}" placeholder="例如：週三下午" maxlength="12" style="width:150px"></label>
-      <label class="f">上班<input type="time" id="psSt" value="${A.st}"></label><label class="f">下班<input type="time" id="psEn" value="${A.en}"></label>
-      <label class="f">休息（分）<input type="number" id="psBrk" min="0" step="10" value="${A.brk}" style="width:80px"></label>
+      <label class="f">上班<input type="text" class="tm" id="psSt" value="${A.st}" inputmode="numeric" maxlength="9" placeholder="例 0830" style="width:96px"></label><label class="f">下班<input type="text" class="tm" id="psEn" value="${A.en}" inputmode="numeric" maxlength="9" placeholder="例 1230" style="width:96px"></label>
+      <label class="f">休息<select id="psBrk">${[...new Set([0,30,60,90,120,150,180,Number(A.brk)||0])].sort((x,y)=>x-y).map(m=>`<option value="${m}" ${Number(A.brk)===m?'selected':''}>${m?(m%60===0?(m/60)+' 小時':m%30===0?((m/60|0)?(m/60|0)+' 小時 ':'')+'30 分':m+' 分'):'不休息'}</option>`).join('')}</select></label>
+      <span class="small muted" style="flex-basis:100%">時間以半小時為單位；直接輸入 4 個數字，例如 0830 代表 08:30，分鐘會自動調整為 00 或 30。</span>
       <span class="small muted">時數 <b class="num">${fmtH(hh)}</b> 小時</span>
       <div class="row"><button class="btn primary" data-act="saveMyShift">${ed?'儲存修改':'儲存並加入班別'}</button><button class="btn" data-act="cancelMyShift">取消</button></div></div>`}
 function toolsHtml(mode,sid){
   const T=S.tool,mine=myShifts(sid);
   let h=`<div class="tools">`;
   cfg().shifts.filter(s=>!inMine(sid,s)).forEach(s=>{h+=`<div class="toolwrap"><button class="tool" data-act="tool" data-v="s:${s.id}" aria-pressed="${T==='s:'+s.id}">${shiftLbl(s)}</button><button class="star" data-act="pickDept" data-id="${s.id}" title="加入我的常用班別" aria-label="把 ${esc(s.name)} 加入我的常用班別">☆</button></div>`});
-  mine.forEach(s=>h+=myToolHtml(s,true));
+  mine.forEach((s,i)=>h+=myToolHtml(s,true,i,mine.length));
   h+=`<button class="tool off-R" data-act="tool" data-v="OFF" aria-pressed="${T==='OFF'}"><span class="chip OFF">OFF</span>排休</button>`;
   if(!S.addShift)h+=`<button class="tool add" data-act="addMyShift"><span>＋ 新增常用班別</span></button>`;
   h+=`</div>${addShiftHtml()}
-      <div class="hint">點一天套用；☆ 加入我的常用班別，✕ 刪除；先點起始日，再按住 <kbd>Shift</kbd> 點結束日，可一次套用整段日期。週六、週日及紅色的醫院公休日不開放選擇。</div>`;
+      <div class="hint">點一天套用；☆ 加入我的常用班別，✕ 刪除，‹ › 調整常用班別的位置；先點起始日，再按住 <kbd>Shift</kbd> 點結束日，可一次套用整段日期。週六、週日及紅色的醫院公休日不開放選擇。</div>`;
   return h;
 }
 function chipHtml(e,mine){
@@ -720,11 +727,13 @@ document.addEventListener('change',e=>{
   const t=e.target;
   if(t.id==='meSel'){if(S.draft){flushDraft().then(()=>toast('已自動暫存剛才的變更'))}S.anchor=null;S.me=t.value;try{localStorage.setItem('pt-me',S.me)}catch(_){}render()}
   if(t.id==='cSt'||t.id==='cEn'||t.id==='cBrk'){S.custom={st:document.getElementById('cSt').value,en:document.getElementById('cEn').value,brk:Number(document.getElementById('cBrk').value)||0};render()}
-  if(['psSt','psEn','psBrk','psName'].includes(t.id)&&S.addShift){S.addShift={editId:S.addShift.editId,orig:S.addShift.orig,name:document.getElementById('psName').value,st:document.getElementById('psSt').value,en:document.getElementById('psEn').value,brk:Number(document.getElementById('psBrk').value)||0};if(t.id!=='psName')render()}
+  if(t.classList&&t.classList.contains('tm'))t.value=normTime(t.value);
+  if(['psSt','psEn','psBrk','psName'].includes(t.id)&&S.addShift){S.addShift={editId:S.addShift.editId,orig:S.addShift.orig,name:document.getElementById('psName').value,st:normTime(document.getElementById('psSt').value)||document.getElementById('psSt').value,en:normTime(document.getElementById('psEn').value)||document.getElementById('psEn').value,brk:Number(document.getElementById('psBrk').value)||0};if(t.id!=='psName')render()}
   if(t.id==='fillShift')S.fill.shift=t.value;
   if(t.id==='fillWk')S.fill.skipWk=t.checked;
 });
-document.addEventListener('input',e=>{if(e.target.id==='myNote'&&S.me){ensureDraft(S.me);S.draft.note=e.target.value;const sb=document.querySelector('[data-act="saveDraft"]');if(sb)sb.disabled=false}});
+document.addEventListener('focusin',e=>{if(e.target.classList&&e.target.classList.contains('tm')){e.target.select();setTimeout(()=>e.target.select(),0)}});
+document.addEventListener('input',e=>{if(e.target.classList&&e.target.classList.contains('tm')){e.target.value=fmtTyping(e.target.value);return}if(e.target.id==='myNote'&&S.me){ensureDraft(S.me);S.draft.note=e.target.value;const sb=document.querySelector('[data-act="saveDraft"]');if(sb)sb.disabled=false}});
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
   if(a==='scrim'){if(e.target===b)closeModal();return}
@@ -736,10 +745,11 @@ document.addEventListener('click',async e=>{
     if(await saveMyShifts(S.me,myShifts(S.me).concat(item))){S.addShift=null;if(S.tool==='s:'+sh.id)S.tool='s:'+item.id;render();toast('已把「'+sh.name+'」加入我的常用班別')}return}
   if(a==='cancelMyShift'){S.addShift=null;render();return}
   if(a==='saveMyShift'){const g=id=>document.getElementById(id).value;const name=g('psName').trim();if(!name){toast('請輸入班別名稱');return}
-    const st=g('psSt'),en=g('psEn'),brk=Number(g('psBrk'))||0;if(!st||!en){toast('請輸入上下班時間');return}
+    const st=normTime(g('psSt')),en=normTime(g('psEn')),brk=Number(g('psBrk'))||0;if(!st||!en){toast('請輸入正確的上下班時間，例如 0830');return}if(st===en){toast('上下班時間不能相同');return}
     if(S.addShift&&S.addShift.editId){await updateMyShift(S.addShift.editId,{name,start:st,end:en,brk});return}
     const item={id:'p'+Date.now().toString(36),code:name.slice(0,2),name,start:st,end:en,brk};
     if(await saveMyShifts(S.me,myShifts(S.me).concat(item))){S.addShift=null;S.tool='s:'+item.id;render();toast('已新增「'+name+'」')}return}
+  if(a==='mvMyShift'){const l=myShifts(S.me).slice(),i=l.findIndex(x=>x.id===b.dataset.id),j=i+Number(b.dataset.dir);if(i<0||j<0||j>=l.length)return;[l[i],l[j]]=[l[j],l[i]];if(await saveMyShifts(S.me,l))render();return}
   if(a==='rmMyShift'){const id=b.dataset.id;if(!arm(b,'確認刪除'))return;if(await saveMyShifts(S.me,myShifts(S.me).filter(s=>s.id!==id))){if(S.tool==='s:'+id)S.tool=null;toast('已刪除常用班別，已排的班不受影響')}return}
   if(a==='tool'){S.tool=S.tool===b.dataset.v?null:b.dataset.v;render();return}
   const meS=()=>S.staff.find(s=>s.id===S.me);
