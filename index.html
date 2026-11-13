@@ -575,7 +575,7 @@ let ptAdm=false;
 function openPT(adm){if(!ptAllowed()){notice("限兼職藥師使用");return}ptAdm=!!(adm&&user.admin);view="pt";render();window.scrollTo(0,0)}
 function ptView(){
   if(!ptAllowed()){setTimeout(()=>{view="form";render()},0);return ""}
-  const head=`<div class="top"><div><b>🕒 ${ptAdm?"兼職藥師排班管理":"兼職藥師排班"}</b></div><div class="row">${ptAdm?`<button class="sec" onclick="go('admin')">返回後台管理</button>`:`<button class="sec" onclick="go('form')">其它假別預約畫面</button>`}<button class="sec" onclick="logout()">登出</button></div></div>`;
+  const head=`<div class="top"><div><b>🕒 ${ptAdm?"兼職藥師排班管理":"兼職藥師排班"}</b><div class="mut">${hello()}（${esc(user.code)}）</div></div><div class="row">${ptAdm?`<button class="sec" onclick="go('admin')">返回後台管理</button>`:`<button class="sec" onclick="go('form')">其它假別預約畫面</button>`}<button class="sec" onclick="logout()">登出</button></div></div>`;
   if(!store||!store.db)return `${head}<div class="card">目前無法連線資料庫（單機模式），兼職藥師排班需要連線資料庫才能使用。</div>`;
   return `${head}<iframe id="ptf" src="parttime.html${ptAdm?"?mode=admin":""}" style="width:100%;height:calc(100vh - 150px);min-height:560px;border:0;border-radius:12px;background:#fff"></iframe>`}
 window.PTHOST={holidays:()=>cfg.holidays,user:()=>user,db:()=>store&&store.db,ptStaff:()=>realStaff().filter(c=>CAT[c]==="兼職藥師").concat(user&&isTest(user.code)&&STAFF[TEST]?[TEST]:[]).map(c=>({code:c,name:STAFF[c]}))};
