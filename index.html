@@ -330,7 +330,7 @@ function pwView(){return `<div class="card head"><h1>修改密碼</h1></div><div
 async function savePw(){
   const a=$("np1").value,b=$("np2").value;
   if(!/^\d+$/.test(a))return flash("密碼只能輸入數字");if(a.length<4)return flash("密碼至少 4 碼");if(a!==b)return flash("兩次輸入不一致");
-  try{await store.setPw(user.code,await sha(user.code+":"+a));user.def=false;view=user.admin?"admin":"form";flash("密碼已更新")}catch(e){flash("儲存失敗")}
+  try{await store.setPw(user.code,await sha(user.code+":"+a));user.def=false;view=user.admin?"admin":"form";flash("密碼已更新");if(user.code==="admin")notice("admin 密碼已修改。")}catch(e){flash("儲存失敗")}
 }
 
 /* admin */
@@ -340,7 +340,8 @@ function adminAccHtml(){const on=!!pws.admin;
   <div class="row" style="align-items:center"><input type="password" id="ap1" inputmode="numeric" maxlength="12" placeholder="${on?"新密碼":"設定密碼"}（只能輸入數字）" oninput="this.value=this.value.replace(/\D/g,'')" style="flex:1;min-width:150px"><input type="password" id="ap2" inputmode="numeric" maxlength="12" placeholder="再輸入一次" oninput="this.value=this.value.replace(/\D/g,'')" style="flex:1;min-width:150px"><button onclick="setAdminPw()">${on?"修改密碼":"啟用 admin"}</button>${on&&user.code!=="admin"?`<button class="del" onclick="offAdmin()">停用 admin</button>`:""}</div></div>`}
 async function setAdminPw(){const a=$("ap1").value,b=$("ap2").value;
   if(!/^\d+$/.test(a))return flash("密碼只能輸入數字");if(a.length<4)return flash("密碼至少 4 碼");if(a!==b)return flash("兩次輸入不一致");
-  try{await store.setPw("admin",await sha("admin:"+a));if(local){pws.admin=await sha("admin:"+a);render()}flash("admin 密碼已設定")}catch(e){flash("儲存失敗")}}
+  const had=!!pws.admin;
+  try{await store.setPw("admin",await sha("admin:"+a));if(local){pws.admin=await sha("admin:"+a);render()}flash(had?"admin 密碼已修改":"admin 已啟用");notice(had?"admin 密碼已修改。":"admin 已啟用，可以用 admin 登入。")}catch(e){flash("儲存失敗")}}
 async function offAdmin(){if(!await ask("確定停用 admin 帳號？停用後無法用 admin 登入，之後可再重新設定密碼啟用。"))return;
   try{await store.resetPw("admin");if(local){delete pws.admin;render()}flash("已停用 admin")}catch(e){flash("停用失敗")}}
 function adminView(){
