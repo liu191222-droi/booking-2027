@@ -282,7 +282,7 @@ const cfg=()=>S.config||DEFAULT_CONFIG;
 const myShifts=sid=>(S.myShifts[sid]||[]);
 const shiftById=(id,sid)=>cfg().shifts.find(s=>s.id===id)||(sid?myShifts(sid):Object.values(S.myShifts).flat()).find(s=>s.id===id);
 const locked=()=>!!(cfg().locked||{})[S.ym];
-/* 兼職人員名單＝預約系統「後台管理 → 員工帳號」中類別為「兼職藥師」的人；ptstaff 只存每人的時薪／領照日／在職設定（以員工代號對應） */
+/* 兼職人員名單＝預約系統「後台管理 → 帳號管理」中類別為「兼職藥師」的人；ptstaff 只存每人的時薪／領照日／在職設定（以員工代號對應） */
 function buildStaff(){const src=HOST&&HOST.ptStaff?HOST.ptStaff():[],set=S.ptset||[];
   return src.map(p=>{const code=String(p.code),x=set.find(d=>String(d.code||'').trim()===code)||{};
     return{id:x.id||code,code,name:p.name,lic:x.lic||'yes',licDate:x.licDate||'',active:x.active!==false}})}
@@ -448,7 +448,7 @@ function overCap(st,patch){const c=cap();if(!c)return false;const after=hoursWit
 
 function viewMine(){
   const list=activeStaff();
-  if(!list.length)return `<div class="empty">目前沒有兼職人員。${S.admin?'請到預約系統「後台管理 → 員工帳號」把人員的類別設為「兼職藥師」。':''}</div>`;
+  if(!list.length)return `<div class="empty">目前沒有兼職人員。${S.admin?'請到預約系統「後台管理 → 帳號管理」把人員的類別設為「兼職藥師」。':''}</div>`;
   const own=list.find(s=>String(s.code||'').trim()===myCode());
   if(!S.admin)S.me=own?own.id:'';else if(!list.some(s=>s.id===S.me))S.me=own?own.id:'';
   const me=list.find(s=>s.id===S.me);
@@ -675,13 +675,13 @@ function viewSetup(){
     <span class="small muted">系統規定：人員不可排週六、週日；主管排班不受限制。</span></section>`;
 
   const list=S.staff.slice().sort((a,b)=>(a.code||'').localeCompare(b.code||''));
-  h+=`<section class="panel"><h2>兼職人員<small>名單來自「後台管理 → 員工帳號」中類別為「兼職藥師」的人</small></h2><div class="tbl"><table><thead><tr><th>員工代號</th><th>姓名</th><th>時薪</th><th>領照日</th><th>在職</th><th></th></tr></thead><tbody>`;
+  h+=`<section class="panel"><h2>兼職人員<small>名單來自「後台管理 → 帳號管理」中類別為「兼職藥師」的人</small></h2><div class="tbl"><table><thead><tr><th>員工代號</th><th>姓名</th><th>時薪</th><th>領照日</th><th>在職</th><th></th></tr></thead><tbody>`;
   const rowH=(s,k)=>`<tr data-sid="${s?s.id:''}"><td class="num">${esc(s.code)}</td><td>${esc(s.name)}</td>
     <td><select name="lic" id="pl${k}"><option value="yes" ${!s||s.lic==='yes'?'selected':''}>已領照 ${c.rateAfter}</option><option value="no" ${s&&s.lic==='no'?'selected':''}>未領照 ${c.rateBefore}</option><option value="date" ${s&&s.lic==='date'?'selected':''}>本月領照（依日期）</option></select></td>
     <td><input type="date" name="licDate" value="${s&&s.licDate||''}" id="pd${k}"></td><td><input type="checkbox" name="active" ${!s||s.active!==false?'checked':''} id="pa${k}"></td>
     <td style="white-space:nowrap"><button class="btn primary" data-act="saveStaff">儲存</button></td></tr>`;
-  list.forEach((s,i)=>h+=rowH(s,i));if(!list.length)h+=`<tr><td colspan="6" class="muted">目前沒有類別為「兼職藥師」的員工，請到預約系統「後台管理 → 員工帳號」設定類別。</td></tr>`;
-  h+=`</tbody></table></div><span class="small muted">要新增或移除兼職人員、修改姓名，請到預約系統「後台管理 → 員工帳號」修改類別或姓名；這裡只設定時薪、領照日與是否在職。</span><span class="small muted">「本月領照」：領照日之前的時數以 ${c.rateBefore} 元計，當天起以 ${c.rateAfter} 元計。取消「在職」可隱藏人員但保留紀錄。</span></section>`;
+  list.forEach((s,i)=>h+=rowH(s,i));if(!list.length)h+=`<tr><td colspan="6" class="muted">目前沒有類別為「兼職藥師」的員工，請到預約系統「後台管理 → 帳號管理」設定類別。</td></tr>`;
+  h+=`</tbody></table></div><span class="small muted">要新增或移除兼職人員、修改姓名，請到預約系統「後台管理 → 帳號管理」修改類別或姓名；這裡只設定時薪、領照日與是否在職。</span><span class="small muted">「本月領照」：領照日之前的時數以 ${c.rateBefore} 元計，當天起以 ${c.rateAfter} 元計。取消「在職」可隱藏人員但保留紀錄。</span></section>`;
 
   h+=`<section class="panel"><h2>人員畫面文字<small>員工排班區塊的標題與說明</small></h2><div class="cards2">
     <label class="f">標題<input type="text" id="cfSTitle" value="${esc(c.staffTitle||'')}" maxlength="30"></label>
