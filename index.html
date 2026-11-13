@@ -131,7 +131,8 @@ window.claude={use:async n=>{
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
-const YEAR=2027, ADMINS=["1507175"];
+const YEAR=2027, ADMINS=["1507175"]; /* 系統預設管理者；其他管理者由後台「帳號管理」指定，存在 config/main 的 admins */
+const isMgr=c=>ADMINS.includes(c)||((cfg&&cfg.admins)||[]).includes(c);
 const SHIFTS=["白班","小夜班","兩頭班","大夜班"];
 const defShift=c=>"白班";
 const shiftSel=(id,v)=>`<select id="${id}" style="flex:1;min-width:100px">${SHIFTS.map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("")}</select>`;
@@ -151,7 +152,7 @@ function normCfg(d){d=d||{};const o=(d.options||DEF.options).slice();if(!d.eduSl
   const slotItems=Array.isArray(d.slotItems)?d.slotItems.map(x=>({n:x.n,ss:(x.ss||[]).map(y=>sessObj(y.d,y.t,y.m)),c:!!x.c})):o.filter(x=>SLOT_TYPES.includes(x)||x===EDU).map(n=>({n,ss:[],c:n===EDU}));
   const dateItems=Array.isArray(d.dateItems)?d.dateItems.slice():o.filter(x=>!SLOT_TYPES.includes(x)&&x!==EDU);
   if(!dateItems.includes("生日體檢")&&!slotItems.some(x=>x.n==="生日體檢"))dateItems.unshift("生日體檢");
-  return{options:dateItems.concat(slotItems.map(x=>x.n)),dateItems,slotItems,slots:sl,eduSlots:es,blocked:d.blocked||[],monthMode:d.monthMode||{},limits:normLim(d.limits),holidays:normHol(d.holidays)}}
+  return{options:dateItems.concat(slotItems.map(x=>x.n)),dateItems,slotItems,slots:sl,eduSlots:es,blocked:d.blocked||[],monthMode:d.monthMode||{},limits:normLim(d.limits),holidays:normHol(d.holidays),admins:Array.isArray(d.admins)?d.admins.map(String).filter(Boolean):[]}}
 /* 報名人數限制：沒有設定＝不限定。「只選日期」項目存在 limits={項目名稱:人數}，以每天計；「日期＋時段」項目存在各場次的 m（每場人數上限） */
 function sessObj(d,t,m){const o={d,t},n=Math.floor(+m);if(n>0)o.m=n;return o}
 const sessLimit=(t,d,sl)=>{const it=cfg.slotItems.find(x=>x.n===t),s=it&&it.ss.find(y=>y.d===d&&y.t===sl);return s&&s.m||0};
@@ -211,7 +212,7 @@ const GREETS=["平安","Hello~Hello~","你好","Hi~"];let greet="平安";
 const hello=()=>esc(callName(user))+(/^[A-Za-z]/.test(greet)?" ":"")+greet;
 function finishLogin(a){
   greet=GREETS[Math.floor(Math.random()*GREETS.length)];
-  loginErr="";const isA=ADMINS.includes(a);
+  loginErr="";const isA=isMgr(a);
   user={code:a,name:STAFF[a],admin:isA,def:!pws[a]};
   if(CAT[a]==="兼職藥師")openPT();else{view="form";render()} /* 兼職藥師登入後直接進入兼職藥師排班；其他人（含大夜班）進入預約畫面 */
 }
@@ -335,14 +336,25 @@ async function savePw(){
 
 /* admin */
 /* 管理員帳號 admin：密碼只存雜湊在資料庫 pw/admin，不寫進程式碼（公開儲存庫） */
-function adminAccHtml(){const on=!!pws.admin;
-  return `<div class="card"><h2>管理員帳號 admin</h2><div class="mut" style="margin-bottom:8px">登入帳號輸入「admin」即可進入後台（不需員編）。目前狀態：<b style="color:${on?"#007440":"var(--dn)"}">${on?"已啟用":"尚未設定密碼"}</b></div>
-  <div class="row" style="align-items:center"><input type="password" id="ap1" inputmode="numeric" maxlength="12" placeholder="${on?"新密碼":"設定密碼"}（只能輸入數字）" oninput="this.value=this.value.replace(/\D/g,'')" style="flex:1;min-width:150px"><input type="password" id="ap2" inputmode="numeric" maxlength="12" placeholder="再輸入一次" oninput="this.value=this.value.replace(/\D/g,'')" style="flex:1;min-width:150px"><button onclick="setAdminPw()">${on?"修改密碼":"啟用 admin"}</button>${on&&user.code!=="admin"?`<button class="del" onclick="offAdmin()">停用 admin</button>`:""}</div></div>`}
-async function setAdminPw(){const a=$("ap1").value,b=$("ap2").value;
+function adminAccHtml(){const on=!!pws.admin,me=user.code==="admin";
+  const mg=[...ADMINS.map(c=>({c,fix:true})),...(cfg.admins||[]).filter(c=>!ADMINS.includes(c)).map(c=>({c}))];
+  const chips=mg.map(x=>`<span class="chip">${esc(x.c)} ${esc(STAFF[x.c]||"（不在員工名單）")}${x.fix?` <small class="mut">系統預設</small>`:`<button onclick="rmMgr('${esc(x.c)}')" title="取消管理者">×</button>`}</span>`).join("");
+  const opts=Object.keys(STAFF).filter(c=>!isMgr(c)).map(c=>`<option value="${esc(c)}">${esc(c)} ${esc(STAFF[c])}</option>`).join("");
+  const pwRow=(me||!on)?`<div class="row" style="align-items:center"><input type="password" id="ap1" inputmode="numeric" maxlength="12" placeholder="${on?"新密碼":"設定密碼"}（只能輸入數字）" oninput="this.value=this.value.replace(/\\D/g,'')" style="flex:1;min-width:150px"><input type="password" id="ap2" inputmode="numeric" maxlength="12" placeholder="再輸入一次" oninput="this.value=this.value.replace(/\\D/g,'')" style="flex:1;min-width:150px"><button onclick="setAdminPw()">${on?"修改密碼":"啟用 admin"}</button>${on&&me?`<button class="del" onclick="offAdmin()">停用 admin</button>`:""}</div>`
+    :`<div class="mut">admin 已啟用；只有 admin 本人可以修改密碼或停用，管理者無法變更或刪除 admin。</div>`;
+  return `<div class="card"><h2>管理員帳號 admin（最高權限）</h2><div class="mut" style="margin-bottom:8px">登入帳號輸入「admin」即可進入後台（不需員編）。目前狀態：<b style="color:${on?"#007440":"var(--dn)"}">${on?"已啟用":"尚未設定密碼"}</b></div>${pwRow}</div>
+  <div class="card"><h2>管理者（共 ${mg.length} 人）</h2><div class="mut" style="margin-bottom:8px">管理者與 admin 有相同的後台權限（含指定管理者），但不能修改或刪除 admin。被指定或取消的人，下次登入時生效。</div>
+  <div class="chips">${chips}</div><div class="row" style="align-items:center"><select id="mgSel" style="flex:1;min-width:180px"><option value="">選擇員工</option>${opts}</select><button onclick="addMgr()">指定為管理者</button></div></div>`}
+async function addMgr(){const c=$("mgSel").value;if(!c)return flash("請選擇員工");if(isMgr(c))return flash("已經是管理者");
+  if(!await ask("確定把「"+c+" "+(STAFF[c]||"")+"」指定為管理者？"))return;if(await cfgSave({admins:[...(cfg.admins||[]),c]}))flash("已指定 "+(STAFF[c]||c)+" 為管理者")}
+async function rmMgr(c){if(ADMINS.includes(c))return flash("系統預設管理者無法取消");
+  if(!await ask("確定取消「"+c+" "+(STAFF[c]||"")+"」的管理者權限？"+(c===user.code?"（這是你自己，下次登入後就不能進後台）":"")))return;
+  if(await cfgSave({admins:(cfg.admins||[]).filter(x=>x!==c)}))flash("已取消 "+(STAFF[c]||c)+" 的管理者權限")}
+async function setAdminPw(){if(pws.admin&&user.code!=="admin")return notice("只有 admin 本人可以修改 admin 的密碼。");const a=$("ap1").value,b=$("ap2").value;
   if(!/^\d+$/.test(a))return flash("密碼只能輸入數字");if(a.length<4)return flash("密碼至少 4 碼");if(a!==b)return flash("兩次輸入不一致");
   const had=!!pws.admin;
   try{await store.setPw("admin",await sha("admin:"+a));if(local){pws.admin=await sha("admin:"+a);render()}flash(had?"admin 密碼已修改":"admin 已啟用");notice(had?"admin 密碼已修改。":"admin 已啟用，可以用 admin 登入。")}catch(e){flash("儲存失敗")}}
-async function offAdmin(){if(!await ask("確定停用 admin 帳號？停用後無法用 admin 登入，之後可再重新設定密碼啟用。"))return;
+async function offAdmin(){if(user.code!=="admin")return notice("管理者不能刪除或停用 admin。");if(!await ask("確定停用 admin 帳號？停用後就不能用 admin 登入（之後可由管理者重新設定密碼啟用）。"))return;
   try{await store.resetPw("admin");if(local){delete pws.admin;render()}flash("已停用 admin")}catch(e){flash("停用失敗")}}
 function adminView(){
   const tabs=Array.from({length:12},(_,i)=>`<button class="${i===month?"on":""}" onclick="month=${i};render()">${i+1}月${bookings.filter(b=>(b.date||"").startsWith(`${YEAR}-${pad(i+1)}`)).length?`<small style="display:block;font-size:11px;opacity:.85">${bookings.filter(b=>(b.date||"").startsWith(`${YEAR}-${pad(i+1)}`)).length} 筆</small>`:""}</button>`).join("");
@@ -479,14 +491,14 @@ async function saveStaffEdit(c){
   const cc=$("ec_"+c).value.trim(),nn=$("en_"+c).value.trim(),sh=$("es_"+c).value,ca=$("ea_"+c).value;
   if(!nn||!okCode(cc))return flash("員編或姓名格式不正確（員編限英數字）");
   if(cc!==c&&STAFF[cc])return flash("員編已存在");
-  if(cc!==c&&ADMINS.includes(c))return flash("管理者員編不能修改");
+  if(cc!==c&&isMgr(c))return flash("管理者員編不能修改（請先取消管理者）");
   if(cc===c&&nn===STAFF[c]&&sh===SHIFT[c]&&ca===CAT[c]){sEdit=null;return render()}
   const old=STAFF[c],oldSh=SHIFT[c],oldCa=CAT[c];
   try{if(cc!==c){delete STAFF[c];delete SHIFT[c];delete CAT[c]}STAFF[cc]=nn;SHIFT[cc]=sh;CAT[cc]=ca;await saveStaffList();
     for(const b of bookings.filter(x=>x.code===c))await store.addB({...b,code:cc,name:nn});
     if(cc!==c&&pws[c])await store.resetPw(c);
     sEdit=null;flash("已更新")}catch(e){delete STAFF[cc];delete SHIFT[cc];delete CAT[cc];STAFF[c]=old;SHIFT[c]=oldSh;CAT[c]=oldCa;flash("儲存失敗")}}
-async function delStaff(c){if(ADMINS.includes(c))return flash("管理者不能刪除");
+async function delStaff(c){if(isMgr(c))return flash("管理者不能刪除（請先取消管理者）");
   if(!await ask("確定刪除 "+STAFF[c]+"（"+c+"）？他既有的預約紀錄會保留。"))return;
   const n=STAFF[c];delete STAFF[c];try{await saveStaffList();if(pws[c])await store.resetPw(c);flash("已刪除 "+n)}catch(e){STAFF[c]=n;flash("刪除失敗")}}
 async function resetPw(c){if(!await ask("將 "+STAFF[c]+" 的密碼重設為員編？"))return;try{await store.resetPw(c);if(local)render()}catch(e){flash("失敗")}}
