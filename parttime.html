@@ -266,7 +266,7 @@ const myCode=()=>{const u=hostUser();return u?String(u.code):''};
 const now=new Date();
 const S={db:null,user:null,dl:undefined,demo:false,admin:false,ready:false,err:'',
   config:null,staff:[],sched:{},ym:ymOf(now.getMonth()===11?now.getFullYear()+1:now.getFullYear(),now.getMonth()===11?1:now.getMonth()+2), /* 預設為下個月 */
-  tab:'mine',tool:null,anchor:null,draft:null,myShifts:{},addShift:null,custom:{st:'09:00',en:'13:00',brk:0},me:'',fill:{shift:'',skipWk:true},unsubSched:null,hist:[],histSid:null,unsubHist:null};
+  tab:'mine',tool:null,anchor:null,draft:null,myShifts:{},addShift:null,custom:{st:'09:00',en:'13:00',brk:0},me:'',fill:{shift:'',skipWk:true,who:''},unsubSched:null,hist:[],histSid:null,unsubHist:null};
 try{S.me=localStorage.getItem('pt-me')||''}catch(e){}
 const isDenied=e=>e&&(e.code==='permission_denied'||e.code==='permission-denied');
 
@@ -591,8 +591,9 @@ function viewPlan(){
   let h=`<section class="panel"><div class="row" style="justify-content:space-between"><h2>${roc(S.ym)}排班總表<small>${sent}/${list.length} 人已送出</small></h2>
     <div class="row"><button class="btn danger" data-act="mclearAll" data-label="清除本月全部排班">清除本月全部排班</button><button class="btn ${locked()?'':'primary'}" data-act="lock">${locked()?'解除鎖定':'鎖定本月，停止員工修改'}</button></div></div>
     <div class="custom"><label class="f">自動補班別<select id="fillShift"><option value="@MY" ${S.fill.shift==='@MY'?'selected':''}>各人員的常用班別（每人第一個）</option><option value="@OFF" ${S.fill.shift==='@OFF'?'selected':''}>OFF 排休</option>${sh.map(s=>`<option value="${s.id}" ${S.fill.shift===s.id?'selected':''}>${esc(s.name)} ${s.start}–${s.end}</option>`).join('')}</select></label>
+    <label class="f">補給誰<select id="fillWho"><option value="">全部人員</option>${list.map(s=>`<option value="${s.id}" ${S.fill.who===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label>
     <label class="row small" style="gap:6px"><input type="checkbox" id="fillWk" ${S.fill.skipWk?'checked':''}>跳過週六日</label>
-    <button class="btn" data-act="fill">幫所有人填滿空白日</button>
+    <button class="btn" data-act="fill">填滿空白日</button>
     <span class="small muted">只填沒有排班也沒有休假的日子，達到每月上限就停止；選「各人員的常用班別」時，沒有設定常用班別的人會略過；填完可再逐格調整。</span></div>
     <div class="hint">點一格編輯；先點一格，再按住 <kbd>Shift</kbd> 點同一列的另一格，可一次設定整段日期。主管可排週六、週日。</div>
     <div class="gridwrap" data-keep="plan"><table class="plan"><thead><tr><th class="nm">人員</th>`;
@@ -622,13 +623,15 @@ async function fillEmpty(){
   const sel=document.getElementById('fillShift').value,isOff=sel==='@OFF',isMy=sel==='@MY';
   const dept=isOff||isMy?null:shiftById(sel);if(!isOff&&!isMy&&!dept)return;
   const skip=document.getElementById('fillWk').checked,n=dim(S.ym);let cnt=0;const noMy=[];
-  for(const st of activeStaff()){const p={};
+  const who=document.getElementById('fillWho').value,targets=activeStaff().filter(s=>!who||s.id===who);
+  for(const st of targets){const p={};
     const sh=isMy?myShifts(st.id)[0]:dept;if(isMy&&!sh){noMy.push(st.name);continue}
     for(let d=1;d<=n;d++){const w=dow(S.ym,d);if(skip&&(w===0||w===6))continue;if(isHolOff(d))continue;if(!entry(st.id,d)){
       if(isOff){p['d'+d]={t:'OFF'};continue}
       const v=shiftEntry(sh);if(cap()&&hoursWith(st,p)+v.h>cap())break;p['d'+d]=v}}
     const k=Object.keys(p).length;if(k){cnt+=k;await saveDays(st.id,isOff?p:withAutoOff(st,p))}}
   const miss=noMy.length?`；${noMy.join('、')} 沒有常用班別，已略過`:'';
+  if(isMy&&noMy.length&&noMy.length===targets.length){toast(`${noMy.join('、')} 沒有設定常用班別，無法補班`);return}
   toast(isOff?(cnt?`已把 ${cnt} 個空白日補上 OFF`:'沒有空白日需要補'):(cnt?`已補上 ${cnt} 個班（不超過每月 ${cap()||'∞'} 小時）${miss}`:`沒有空白日需要補，或已達時數上限${miss}`));
 }
 
@@ -775,6 +778,7 @@ document.addEventListener('change',e=>{
     /* 只更新時數，不重畫畫面，按 Tab 才能順利移到下一欄 */const A=S.addShift,hEl=document.getElementById('psH');if(hEl&&normTime(A.st)&&normTime(A.en))hEl.textContent=fmtH(hrs(A.st,A.en,A.brk))}
   if(t.id==='fillShift')S.fill.shift=t.value;
   if(t.id==='fillWk')S.fill.skipWk=t.checked;
+  if(t.id==='fillWho')S.fill.who=t.value;
 });
 document.addEventListener('focusin',e=>{if(e.target.classList&&e.target.classList.contains('tm')){e.target.select();setTimeout(()=>e.target.select(),0)}});
 document.addEventListener('input',e=>{if(e.target.classList&&e.target.classList.contains('tm')){e.target.value=fmtTyping(e.target.value);return}if(e.target.id==='myNote'&&S.me){ensureDraft(S.me);S.draft.note=e.target.value;const sb=document.querySelector('[data-act="saveDraft"]');if(sb)sb.disabled=false}});
