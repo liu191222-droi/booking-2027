@@ -590,10 +590,10 @@ function viewPlan(){
   const sent=list.filter(s=>S.sched[s.id]&&S.sched[s.id].status==='sent').length;
   let h=`<section class="panel"><div class="row" style="justify-content:space-between"><h2>${roc(S.ym)}排班總表<small>${sent}/${list.length} 人已送出</small></h2>
     <div class="row"><button class="btn danger" data-act="mclearAll" data-label="清除本月全部排班">清除本月全部排班</button><button class="btn ${locked()?'':'primary'}" data-act="lock">${locked()?'解除鎖定':'鎖定本月，停止員工修改'}</button></div></div>
-    <div class="custom"><label class="f">自動補班別<select id="fillShift">${sh.map(s=>`<option value="${s.id}" ${S.fill.shift===s.id?'selected':''}>${esc(s.name)} ${s.start}–${s.end}</option>`).join('')}</select></label>
+    <div class="custom"><label class="f">自動補班別<select id="fillShift"><option value="@MY" ${S.fill.shift==='@MY'?'selected':''}>各人員的常用班別（每人第一個）</option><option value="@OFF" ${S.fill.shift==='@OFF'?'selected':''}>OFF 排休</option>${sh.map(s=>`<option value="${s.id}" ${S.fill.shift===s.id?'selected':''}>${esc(s.name)} ${s.start}–${s.end}</option>`).join('')}</select></label>
     <label class="row small" style="gap:6px"><input type="checkbox" id="fillWk" ${S.fill.skipWk?'checked':''}>跳過週六日</label>
     <button class="btn" data-act="fill">幫所有人填滿空白日</button>
-    <span class="small muted">只填沒有排班也沒有休假的日子，達到每月上限就停止；填完可再逐格調整。</span></div>
+    <span class="small muted">只填沒有排班也沒有休假的日子，達到每月上限就停止；選「各人員的常用班別」時，沒有設定常用班別的人會略過；填完可再逐格調整。</span></div>
     <div class="hint">點一格編輯；先點一格，再按住 <kbd>Shift</kbd> 點同一列的另一格，可一次設定整段日期。主管可排週六、週日。</div>
     <div class="gridwrap" data-keep="plan"><table class="plan"><thead><tr><th class="nm">人員</th>`;
   for(let d=1;d<=n;d++){const w=dow(S.ym,d),ho=isHolOff(d)?holOf(d):null;h+=`<th class="dcol ${w===0?'sun':w===6?'sat':''} ${ho?'hol':''}" ${ho?`title="${esc(ho.n)}（醫院公休）"`:''}><span class="num">${d}</span><br><small>${WD[w]}</small></th>`}
@@ -619,12 +619,17 @@ function openCell(sid,d,shift){
     <div class="row"><button class="tool off-R" data-act="mset" data-v="OFF" aria-pressed="${!!(e&&e.t==='OFF')}"><span class="chip OFF">OFF</span>排休</button><button class="btn danger" data-act="mset" data-v="clear">清除這天</button><button class="btn" data-act="close" style="margin-left:auto">關閉</button></div>`,{sid,days});render();
 }
 async function fillEmpty(){
-  const sh=shiftById(document.getElementById('fillShift').value);if(!sh)return;
-  const skip=document.getElementById('fillWk').checked,n=dim(S.ym);let cnt=0;
+  const sel=document.getElementById('fillShift').value,isOff=sel==='@OFF',isMy=sel==='@MY';
+  const dept=isOff||isMy?null:shiftById(sel);if(!isOff&&!isMy&&!dept)return;
+  const skip=document.getElementById('fillWk').checked,n=dim(S.ym);let cnt=0;const noMy=[];
   for(const st of activeStaff()){const p={};
-    for(let d=1;d<=n;d++){const w=dow(S.ym,d);if(skip&&(w===0||w===6))continue;if(isHolOff(d))continue;if(!entry(st.id,d)){const v=shiftEntry(sh);if(cap()&&hoursWith(st,p)+v.h>cap())break;p['d'+d]=v}}
-    const k=Object.keys(p).length;if(k){cnt+=k;await saveDays(st.id,withAutoOff(st,p))}}
-  toast(cnt?`已補上 ${cnt} 個班（不超過每月 ${cap()||'∞'} 小時）`:'沒有空白日需要補，或已達時數上限');
+    const sh=isMy?myShifts(st.id)[0]:dept;if(isMy&&!sh){noMy.push(st.name);continue}
+    for(let d=1;d<=n;d++){const w=dow(S.ym,d);if(skip&&(w===0||w===6))continue;if(isHolOff(d))continue;if(!entry(st.id,d)){
+      if(isOff){p['d'+d]={t:'OFF'};continue}
+      const v=shiftEntry(sh);if(cap()&&hoursWith(st,p)+v.h>cap())break;p['d'+d]=v}}
+    const k=Object.keys(p).length;if(k){cnt+=k;await saveDays(st.id,isOff?p:withAutoOff(st,p))}}
+  const miss=noMy.length?`；${noMy.join('、')} 沒有常用班別，已略過`:'';
+  toast(isOff?(cnt?`已把 ${cnt} 個空白日補上 OFF`:'沒有空白日需要補'):(cnt?`已補上 ${cnt} 個班（不超過每月 ${cap()||'∞'} 小時）${miss}`:`沒有空白日需要補，或已達時數上限${miss}`));
 }
 
 /* ---------- 報表 ---------- */
@@ -633,7 +638,7 @@ function viewReport(){
   const rows=list.slice();while(rows.length<9)rows.push(null);
   const dayCls=d=>d>n?'nod':(w=>w===0?'wk0':w===6?'wk6':'')(dow(S.ym,d));
   let h=`<section class="panel"><div class="row" style="justify-content:space-between"><h2>${roc(S.ym)}${esc(c.title)}<small>格式與紙本申請表相同</small></h2>
-    <button class="btn primary" data-act="xlsx" ${S.dl?'':'disabled'}>匯出 Excel</button></div>
+    <div class="row"><button class="btn" data-act="printPdf">列印／存成 PDF</button><button class="btn primary" data-act="xlsx" ${S.dl?'':'disabled'}>匯出 Excel</button></div></div>
     
     <div class="sheetwrap" data-keep="sheet"><div class="sheet">
     <div class="hd"><div>部門名稱：${esc(c.deptName)}<br>部門代號：${esc(c.deptCode)}</div><div class="t">${roc(S.ym)}　${esc(c.title)}</div><div class="note">${esc(c.headNote)}</div></div>
@@ -646,9 +651,28 @@ function viewReport(){
     h+=`<tr><td>${st?esc(st.code):''}</td><td>${st?esc(st.name):''}</td>`;
     for(let d=1;d<=31;d++){const e=st&&d<=n?entry(st.id,d):null;h+=`<td class="${dayCls(d)} ${e&&e.t==='OFF'?'off':''}">${e?(e.t==='w'?fmtH(e.h):e.t):''}</td>`}
     h+=`<td>${fmtH(t.before)}</td><td>${fmtH(t.after)}</td><td>${t.amount.toLocaleString()}</td><td></td></tr>`});
-  h+=`</tbody><tbody class="notes"><tr><td colspan="2" style="text-align:center">說明：</td><td colspan="36">${c.notes.map((x,i)=>`${i+1}. ${esc(x)}`).join('<br>')}</td></tr></tbody></table>
+  h+=`</tbody><tbody class="notes"><tr><td colspan="2" style="text-align:center">說明：</td><td colspan="35">${c.notes.map((x,i)=>`${i+1}. ${esc(x)}`).join('<br>')}</td></tr></tbody></table>
     <div class="sign">${c.signers.map(s=>`<div>${esc(s)}：</div>`).join('')}</div></div></div></section>`;
   return h;
+}
+/* 列印／存成 PDF：把申請表放進隱藏的 iframe，以 A4 橫式列印（列印對話框選「另存為 PDF」即可存檔） */
+function printSheet(){
+  const sh=document.querySelector('.sheet');if(!sh){toast('找不到申請表');return}
+  const css=[...document.querySelectorAll('style')].map(x=>x.textContent).join('\n');
+  const old=document.getElementById('ptPrintFrame');if(old)old.remove();
+  const f=document.createElement('iframe');f.id='ptPrintFrame';f.setAttribute('aria-hidden','true');
+  f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(f);
+  const d=f.contentDocument,title=roc(S.ym)+cfg().title;
+  d.open();d.write(`<!doctype html><html lang="zh-Hant" data-theme="light"><head><meta charset="utf-8"><title>${esc(title)}</title><style>${css}
+@page{size:A4 landscape;margin:8mm}
+html,body{background:#fff!important;margin:0;padding:0}
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.sheet{min-width:0;width:100%;padding:0;box-sizing:border-box}
+.sheet tbody td{height:40px}
+</style></head><body>${sh.outerHTML}</body></html>`);d.close();
+  const go=()=>{try{f.contentWindow.focus();f.contentWindow.print()}catch(e){toast('無法開啟列印視窗')}};
+  setTimeout(go,300);
 }
 function loadExcel(){return new Promise((res,rej)=>{if(window.ExcelJS)return res(window.ExcelJS);const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js';s.onload=()=>res(window.ExcelJS);s.onerror=()=>rej(new Error('Excel 元件載入失敗'));document.head.appendChild(s)})}
 async function exportXlsx(btn){
@@ -794,6 +818,7 @@ document.addEventListener('click',async e=>{
   if(a==='mclearAll'){if(!arm(b,'確認清除所有人？'))return;let n=0;for(const st of activeStaff()){if(S.sched[st.id]&&await saveDays(st.id,emptyPatch()))n++}toast(n?`已清除 ${n} 人的本月排班`:'本月沒有排班可清除');return}
   if(a==='lock'){const l=Object.assign({},cfg().locked||{});if(l[S.ym])delete l[S.ym];else l[S.ym]=true;if(await saveConfig({locked:l}))toast(l[S.ym]?'已鎖定':'已解除鎖定');return}
   if(a==='xlsx'){if(S.dl)exportXlsx(b);return}
+  if(a==='printPdf'){printSheet();return}
   if(a==='addShift'){const sh=readShifts();sh.push({id:'s'+Date.now().toString(36),code:'新',name:'新班別',start:'09:00',end:'13:00',brk:0});S.config=Object.assign({},cfg(),{shifts:sh});render();toast('記得按「儲存班別」');return}
   if(a==='rmShift'){const sh=readShifts();sh.splice(Number(b.dataset.i),1);S.config=Object.assign({},cfg(),{shifts:sh});render();toast('記得按「儲存班別」');return}
   if(a==='saveShifts'){if(await saveConfig({shifts:readShifts()}))toast('班別已儲存');return}
