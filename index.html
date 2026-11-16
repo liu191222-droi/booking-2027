@@ -476,13 +476,13 @@ function overviewHtml(){
   const [oy,om]=ovMonth.split("-").map(Number);
   const by={};src.forEach(b=>{(by[b.code]=by[b.code]||[]).push(b)});
   const codes=realStaff(),done=codes.filter(c=>by[c]).length;
-  const rows=codes.filter(c=>!onlyNo||!by[c]).map(c=>{
+  const rows=codes.filter(c=>mon?by[c]:(!onlyNo||!by[c])).map(c=>{ /* 每月檢視只列出當月有預約的人 */
     const l=(by[c]||[]).sort((a,b)=>a.date.localeCompare(b.date));
     return `<tr><td>${c}</td><td>${esc(STAFF[c])}</td><td>${l.length?l.length:"<span class='mut'>未預約</span>"}</td><td>${l.map(b=>esc(b.date+" "+(b.slot||"")+" "+(b.type==="生日體檢"?"🎂 ":"")+b.type+(b.note?"（"+b.note+"）":""))).join("<br>")}</td></tr>`}).join("");
   const sw=`<div class="row" style="align-items:center;margin-bottom:10px"><button class="${mon?"":"sec"}" onclick="ovMode='month';render()">每月預約情形</button><button class="${mon?"sec":""}" onclick="ovMode='all';render()">全部預約情形</button>${mon?`<button class="sec" onclick="ovMonth=ovMonths()[Math.max(0,ovMonths().indexOf(ovMonth)-1)];render()">‹</button><select onchange="ovMonth=this.value;render()" style="width:auto">${ovMonths().map(m=>{const[y,mm]=m.split("-").map(Number);return `<option value="${m}" ${m===ovMonth?"selected":""}>${y}年${mm}月</option>`}).join("")}</select><button class="sec" onclick="const a=ovMonths();ovMonth=a[Math.min(a.length-1,a.indexOf(ovMonth)+1)];render()">›</button>`:""}</div>`;
   return `<div class="card"><h2>全員預約情形${mon?`（${oy} 年 ${om} 月）`:"（全部）"}</h2>${sw}<div class="mut" style="margin-bottom:8px">共 ${codes.length} 人，${mon?"本月":""}已預約 ${done} 人，未預約 ${codes.length-done} 人，總計 ${src.length} 筆</div>
-  <label class="opt"><input type="checkbox" ${onlyNo?"checked":""} onchange="onlyNo=this.checked;render()"> 只看${mon?"本月":""}未預約的人</label>
-  <div class="scroll"><table><tr><th>員編</th><th>姓名</th><th>筆數</th><th>預約內容</th></tr>${rows}</table></div></div>`}
+  ${mon?"":`<label class="opt"><input type="checkbox" ${onlyNo?"checked":""} onchange="onlyNo=this.checked;render()"> 只看未預約的人</label>`}
+  <div class="scroll"><table><tr><th>員編</th><th>姓名</th><th>筆數</th><th>預約內容</th></tr>${rows||`<tr><td colspan="4" class="mut">${mon?"這個月沒有人預約":"沒有符合的人員"}</td></tr>`}</table></div></div>`}
 const NICK={"1513095":"主任"};
 function callName(u){if(NICK[u.code])return NICK[u.code];if(u.code==="admin")return u.name;const a=[...u.name];return a.length>2?a.slice(1).join(""):u.name}
 function notice(m){return new Promise(r=>{const d=document.createElement("div");d.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99;padding:16px";
