@@ -381,6 +381,10 @@ function adminView(){
   `<div class="card"><h2>帳號管理（共 ${realStaff().length} 人${STAFF[TEST]?"，另有測試帳號 test":""}）</h2><div class="row" style="margin-bottom:10px;align-items:center"><button class="sec" onclick="exportStaff()">📥 匯出 Excel</button>${staffStatHtml()}</div><div class="row" style="margin-bottom:10px"><input type="text" id="sc" placeholder="員編" style="flex:1;min-width:110px"><input type="text" id="sn" placeholder="姓名" style="flex:1;min-width:110px">${shiftSel("ss","白班")}${catSel("sa","藥師")}<button onclick="addStaff()">新增員工</button></div><div class="scroll"><table><tr><th>員編</th><th>姓名</th><th>班別</th><th>類別</th><th>密碼</th><th></th></tr>${staff}</table></div></div>${adminAccHtml()}`);
 }
 var onlyNo=false;
+/* 全員預約情形：預設「每月」，月份預設為登入月份的次月；也可切換「全部」 */
+const ovNext=(()=>{const t=new Date(),d=new Date(t.getFullYear(),t.getMonth()+1,1);return d.getFullYear()+"-"+pad(d.getMonth()+1)})();
+var ovMode="month",ovMonth=ovNext;
+function ovMonths(){const set=new Set([ovNext,ovMonth]);for(let i=1;i<=12;i++)set.add(YEAR+"-"+pad(i));bookings.forEach(b=>{if(b.date)set.add(b.date.slice(0,7))});return [...set].sort()}
 function holHtml(){
   const H={};cfg.holidays.forEach(x=>H[x.d]=x);
   const months=Array.from({length:12},(_,m)=>{const f=new Date(YEAR,m,1).getDay(),n=new Date(YEAR,m+1,0).getDate();
@@ -468,13 +472,16 @@ function optCardsHtml(){
   <div class="card"><h2>預約項目 ③ 加班費申請</h2><div class="mut">已啟用：同事從預約畫面右上角的「💰 加班費申請」進入填寫；管理者在後台上方的「💰 加班費申請後台」審核與製作加班費總表。</div></div>
   <div class="card ph"><h2>預約項目 ④ 特休申請</h2><div class="mut">預留位置，之後會接上「特休申請」程式。目前尚未啟用，同事的預約畫面不會顯示。</div></div>`}
 function overviewHtml(){
-  const by={};bookings.forEach(b=>{(by[b.code]=by[b.code]||[]).push(b)});
+  const mon=ovMode==="month",src=bookings.filter(b=>b.code!==TEST&&(!mon||(b.date||"").startsWith(ovMonth+"-")));
+  const [oy,om]=ovMonth.split("-").map(Number);
+  const by={};src.forEach(b=>{(by[b.code]=by[b.code]||[]).push(b)});
   const codes=realStaff(),done=codes.filter(c=>by[c]).length;
   const rows=codes.filter(c=>!onlyNo||!by[c]).map(c=>{
     const l=(by[c]||[]).sort((a,b)=>a.date.localeCompare(b.date));
     return `<tr><td>${c}</td><td>${esc(STAFF[c])}</td><td>${l.length?l.length:"<span class='mut'>未預約</span>"}</td><td>${l.map(b=>esc(b.date+" "+(b.slot||"")+" "+(b.type==="生日體檢"?"🎂 ":"")+b.type+(b.note?"（"+b.note+"）":""))).join("<br>")}</td></tr>`}).join("");
-  return `<div class="card"><h2>全員預約情形</h2><div class="mut" style="margin-bottom:8px">共 ${codes.length} 人，已預約 ${done} 人，未預約 ${codes.length-done} 人，總計 ${bookings.filter(b=>b.code!==TEST).length} 筆</div>
-  <label class="opt"><input type="checkbox" ${onlyNo?"checked":""} onchange="onlyNo=this.checked;render()"> 只看未預約的人</label>
+  const sw=`<div class="row" style="align-items:center;margin-bottom:10px"><button class="${mon?"":"sec"}" onclick="ovMode='month';render()">每月預約情形</button><button class="${mon?"sec":""}" onclick="ovMode='all';render()">全部預約情形</button>${mon?`<button class="sec" onclick="ovMonth=ovMonths()[Math.max(0,ovMonths().indexOf(ovMonth)-1)];render()">‹</button><select onchange="ovMonth=this.value;render()" style="width:auto">${ovMonths().map(m=>{const[y,mm]=m.split("-").map(Number);return `<option value="${m}" ${m===ovMonth?"selected":""}>${y}年${mm}月</option>`}).join("")}</select><button class="sec" onclick="const a=ovMonths();ovMonth=a[Math.min(a.length-1,a.indexOf(ovMonth)+1)];render()">›</button>`:""}</div>`;
+  return `<div class="card"><h2>全員預約情形${mon?`（${oy} 年 ${om} 月）`:"（全部）"}</h2>${sw}<div class="mut" style="margin-bottom:8px">共 ${codes.length} 人，${mon?"本月":""}已預約 ${done} 人，未預約 ${codes.length-done} 人，總計 ${src.length} 筆</div>
+  <label class="opt"><input type="checkbox" ${onlyNo?"checked":""} onchange="onlyNo=this.checked;render()"> 只看${mon?"本月":""}未預約的人</label>
   <div class="scroll"><table><tr><th>員編</th><th>姓名</th><th>筆數</th><th>預約內容</th></tr>${rows}</table></div></div>`}
 const NICK={"1513095":"主任"};
 function callName(u){if(NICK[u.code])return NICK[u.code];if(u.code==="admin")return u.name;const a=[...u.name];return a.length>2?a.slice(1).join(""):u.name}
