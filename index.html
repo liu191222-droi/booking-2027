@@ -56,6 +56,7 @@ body{font-size:16px}
 button:disabled:not(.d){opacity:.4;cursor:not-allowed}
 .dp .d.wkend{text-decoration:none!important;opacity:1!important;color:#fff!important}.dp .d.wkend.sat{background:#43a047!important;border-color:#43a047!important}.dp .d.wkend.sun{background:#e53935!important;border-color:#e53935!important}
 .dp .d.hol{text-decoration:none!important;background:#e53935!important;color:#fff!important;opacity:1!important;border-color:#e53935!important}.dp .d.hol{overflow:hidden;padding-left:0!important;padding-right:0!important}.dp .d.hol small{color:#fff!important;white-space:nowrap;font-size:10px;letter-spacing:-.06em}
+.myd>summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px}.myd>summary::-webkit-details-marker{display:none}.myd>summary::before{content:"▶";font-size:14px;color:var(--ac2,#007440);transition:transform .15s}.myd[open]>summary::before{transform:rotate(90deg)}.myd>summary h2{margin:0}
 .ycal{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}.ycal .m{border:1px solid var(--bd);border-radius:10px;padding:8px}.ycal .m b{display:block;text-align:center;margin-bottom:4px}.ycal .g{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;font-size:12px;text-align:center}.ycal .g span{padding:3px 0;border-radius:4px}.ycal .g .w{color:#888}.ycal .g .hoff{background:#e53935;color:#fff;font-weight:700}.ycal .g .hopen{box-shadow:inset 0 0 0 2px #e53935;color:#c62828;font-weight:700}.holrow.off td:first-child{border-left:5px solid #e53935}
 .bk{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:8px}
 .hero{background:#fff;border-radius:16px;text-align:center;padding:24px 16px 20px;margin-bottom:14px;border-top:8px solid #007440;box-shadow:0 4px 16px rgba(0,116,64,.18)}
@@ -165,7 +166,7 @@ const cntFor=(t,d,sl,ex)=>bookings.filter(x=>x.type===t&&x.date===d&&(!slotKind(
 const isFull=(t,d,sl,ex)=>{const L=limFor(t,d,sl);return L>0&&cntFor(t,d,sl,ex)>=L};
 const slotKind=t=>{const it=cfg.slotItems.find(x=>x.n===t);return it?(it.c?"edu":"ampm"):""};
 const slotsOf=t=>{const it=cfg.slotItems.find(x=>x.n===t);return it?it.s:[]};
-let otDocs=[],otShown=[],myF=1,cfg=normCfg(null),bookings=[],pws={},user=null,view="login",month=new Date().getMonth(),msg="",store=null,local=false,adminTab="book",editId=null,fill=null,reset=false,sEdit=null;
+let otDocs=[],otShown=[],myF=1,myOpen=false,cfg=normCfg(null),bookings=[],pws={},user=null,view="login",month=new Date().getMonth(),msg="",store=null,local=false,adminTab="book",editId=null,fill=null,reset=false,sEdit=null;
 
 function lsGet(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
@@ -228,7 +229,7 @@ async function login(){
   if(!ok)return loginFail("密碼錯誤");
   finishLogin(a);
 }
-function logout(){user=null;editId=null;fill=null;view="login";render()}
+function logout(){user=null;editId=null;fill=null;myOpen=false;view="login";render()}
 
 /* 我的加班費申請：讀取加班頁存在 ot 集合的資料（ot-form-v1:員編@民國年-月） */
 const OT_T={A:"平日加班",B:"緊急來院加班",C:"休息日出勤"};
@@ -302,7 +303,7 @@ function formView(){
   ${user.def?`<div class="msg">你目前使用預設密碼，建議先<a href="#" onclick="go('pw');return false">修改密碼</a>。</div>`:""}
   ${okB?`<div class="card" style="border:2px solid var(--ac2)"><h2>✅ ${okB.upd?"預約已更新":"預約成功"}</h2><div>項目：${okB.type==="生日體檢"?"🎂 ":""}${esc(okB.type)}<br>日期：${esc(dstr(okB.date))}${okB.slot?`<br>時段：${esc(okB.slot)}`:""}</div><br><button class="sec" onclick="okB=null;render()">關閉</button></div>`:""}
   ${editId?`<div class="msg">正在修改預約，改完請按「更新預約」。</div>`:""}
-  <div class="card"><h2>我的預約/申請情形</h2><div style="margin-bottom:8px">${myFil}</div>${cards}</div>
+  <div class="card"><details class="myd" ${myOpen?"open":""} ontoggle="myOpen=this.open"><summary><h2>我的預約/申請情形</h2></summary><div style="margin:10px 0 8px">${myFil}</div>${cards}</details></div>
   <div class="card"><h2 class="req">你要預約/申請</h2><div class="cards"><button class="pick nn" onclick="openOT('form')">💰 加班費申請</button>${SHIFT[user.code]==="大夜班"?`<button class="pick nn" onclick="openNight()">🌙 大夜藥師排班</button>${types}`:`${types}<button class="pick nn" onclick="openNight()">🌙 大夜藥師排班</button>`}<button class="pick nn" onclick="openPT()">🕒 兼職藥師排班</button></div>${other}</div>
   ${sType&&!sk?calCard:""}
   ${sk?`<div class="card"><h2 class="req">你要預約/申請什麼時段？</h2>${sessBtns?`<div class="cards">${sessBtns}${sk==="edu"?`<button class="pick ${sSlot==="__custom"?"on":""}" onclick="pickSlot('__custom')">自訂日期與時間</button>`:""}</div>`:`<div class="mut">目前沒有開放預約的場次${sk==="edu"?"，可以選擇自訂日期與時間":""}。</div>${sk==="edu"?`<div class="cards" style="margin-top:8px"><button class="pick ${sSlot==="__custom"?"on":""}" onclick="pickSlot('__custom')">自訂日期與時間</button></div>`:""}`}${sk==="edu"&&sSlot==="__custom"?`<div class="row" style="margin-top:12px;align-items:center"><span>從</span><input type="time" id="t1" value="${esc(sT1)}" oninput="sT1=this.value"><span>到</span><input type="time" id="t2" value="${esc(sT2)}" oninput="sT2=this.value"></div>`:""}</div>${sk==="edu"&&sSlot==="__custom"?calCard:""}`:""}
