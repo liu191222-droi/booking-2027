@@ -205,7 +205,7 @@ table.stat{width:100%;margin:0;border-collapse:collapse;table-layout:fixed;font-
  <div class="sec"><label class="l">日期（<span id="calT"></span>）</label><div class="cal" id="cal"></div><div class="mut" style="font-size:12px;margin-top:6px">電腦上可按住 Shift 點選連續日期，按住 Ctrl 點選多個日期，每天各新增一筆。</div><div id="selN" style="font-size:13px;margin-top:4px;color:var(--ac);font-weight:700"></div></div>
  <div class="sec"><label class="l" for="reason">加班申請事由 <span class="rnote">紅框標示表示已預設時數及種類，無須更動，但可自己調整</span></label><textarea class="in" id="reason" rows="3"></textarea><div class="chips" id="rch"></div><div class="mut" style="font-size:12px;margin-top:6px">常用事由只能選一個；選好日期後再點紅框（已預設）的事由，確認後就會直接送出。★ 是你自己的常用事由。</div><div class="acts" style="margin-top:8px;justify-content:flex-start;flex-wrap:wrap"><button type="button" class="btn" id="myRSave" style="flex:0 0 auto;font-size:13px;padding:6px 12px;min-height:0">＋ 把目前的事由存成我的常用事由</button><button type="button" class="btn" id="myRTog" style="flex:0 0 auto;font-size:13px;padding:6px 12px;min-height:0">管理我的常用事由</button></div><div id="myRBox" class="hide" style="margin-top:8px"></div></div>
  <div class="sec"><label class="l">加班起迄時間</label>
-  <div class="tt"><input class="in" type="time" id="os" step="1800"><span>至</span><input class="in" type="time" id="oe" step="1800"></div><div class="chips" id="tch"></div></div>
+  <div class="tt"><input class="in" type="time" id="os"><span>至</span><input class="in" type="time" id="oe"></div><div class="chips" id="tch"></div></div>
  <div class="sec"><label class="l">休息起迄時間</label>
   <div class="tt"><input class="in" type="time" id="rs"><span>至</span><input class="in" type="time" id="re"></div>
   <div class="chips" id="rtch"></div>
@@ -548,9 +548,10 @@ function syncRest(){const n=$('#nr').checked;$('#rs').disabled=$('#re').disabled
   $('#reason').placeholder=n?'請說明未休息的特殊原因':''}
 $('#nr').onchange=syncRest;
 $('#reason').addEventListener('input',()=>{const o=E&&E.rsel>=0?allR()[E.rsel]:null;if(o&&$('#reason').value.trim()!==o.t){E.rsel=-1;drawChips()}});
-/* 加班起迄時間以半小時為單位：離開欄位時調整為整點或半點 */
+/* 加班起迄時間以半小時為單位：離開欄位時調整為整點或半點（不用 step 屬性，否則鍵盤無法輸入 30 分） */
 const halfHour=v=>{const m=/^(\d\d):(\d\d)$/.exec(v||'');if(!m)return v;let h=+m[1],mi=+m[2];if(mi<15)mi=0;else if(mi<45)mi=30;else{mi=0;h=(h+1)%24}return String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0')};
-['os','oe'].forEach(k=>$('#'+k).addEventListener('change',e=>{const v=halfHour(e.target.value);if(v!==e.target.value){e.target.value=v;refreshHrs();dayHint()}}));
+// 用 blur（離開整個欄位）才調整；Chrome 在打字途中就會觸發 change，若在 change 調整會吃掉第二個分鐘數字
+['os','oe'].forEach(k=>$('#'+k).addEventListener('blur',e=>{const v=halfHour(e.target.value);if(v!==e.target.value){e.target.value=v;refreshHrs();dayHint()}}));
 $('.sheet').addEventListener('input',e=>{if(['os','oe','rs','re'].indexOf(e.target.id)>=0)refreshHrs()});$('.sheet').addEventListener('change',e=>{if(e.target.id==='nr')refreshHrs()});
 $('.sheet').addEventListener('input',dayHint);$('.sheet').addEventListener('change',dayHint);$('.sheet').addEventListener('click',()=>setTimeout(dayHint,0));
 $('#shX').onclick=closeSheet;$('#bg').onclick=e=>{if(e.target.id==='bg')closeSheet()};
