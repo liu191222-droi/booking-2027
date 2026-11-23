@@ -25,6 +25,7 @@ details summary{font-size:13px;color:var(--mut);margin-top:10px;cursor:pointer}
 .badge{flex:none;width:36px;height:36px;border-radius:50%;color:#fff;display:grid;place-items:center;font-weight:700}
 .ent .m{flex:1;min-width:0}.ent .m div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mut{color:var(--mut);font-size:13px}.chip.pre{border-color:#d93025;box-shadow:0 0 0 1px #d93025}
+.chip .my{color:#e0a100;margin-right:3px}.myr{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #eceef0}.myr span{flex:1}.myr small{display:block}.myr button{border:1px solid #bcc3cb;background:#fff;border-radius:8px;padding:4px 8px;font-size:13px}
 .chip.on{background:#2f6f9f;border-color:#2f6f9f;color:#fff;font-weight:700}.chip.pre.on{background:#d93025;border-color:#d93025}.rnote{color:#d93025;font-weight:400;font-size:12px}.hrs{text-align:right;font-size:13px;color:var(--mut);white-space:nowrap}
 .empty{color:var(--mut);text-align:center;padding:22px 0}
 .sum{font-size:13px;color:var(--mut);margin-top:8px;border-top:1px dashed var(--ln);padding-top:8px}
@@ -202,7 +203,7 @@ table.stat{width:100%;margin:0;border-collapse:collapse;table-layout:fixed;font-
 <div class="bg" id="bg"><div class="sheet">
  <div class="sh"><b id="shT">新增加班</b><button class="x" id="shX" aria-label="關閉">×</button></div>
  <div class="sec"><label class="l">日期（<span id="calT"></span>）</label><div class="cal" id="cal"></div><div class="mut" style="font-size:12px;margin-top:6px">電腦上可按住 Shift 點選連續日期，按住 Ctrl 點選多個日期，每天各新增一筆。</div><div id="selN" style="font-size:13px;margin-top:4px;color:var(--ac);font-weight:700"></div></div>
- <div class="sec"><label class="l" for="reason">加班申請事由 <span class="rnote">紅框標示表示已預設時數及種類，無須更動，但可自己調整</span></label><textarea class="in" id="reason" rows="3"></textarea><div class="chips" id="rch"></div><div class="mut" style="font-size:12px;margin-top:6px">常用事由只能選一個；選好日期後再點紅框（已預設）的事由，確認後就會直接送出。</div></div>
+ <div class="sec"><label class="l" for="reason">加班申請事由 <span class="rnote">紅框標示表示已預設時數及種類，無須更動，但可自己調整</span></label><textarea class="in" id="reason" rows="3"></textarea><div class="chips" id="rch"></div><div class="mut" style="font-size:12px;margin-top:6px">常用事由只能選一個；選好日期後再點紅框（已預設）的事由，確認後就會直接送出。★ 是你自己的常用事由。</div><div class="acts" style="margin-top:8px;justify-content:flex-start;flex-wrap:wrap"><button type="button" class="btn" id="myRSave" style="flex:0 0 auto;font-size:13px;padding:6px 12px;min-height:0">＋ 把目前的事由存成我的常用事由</button><button type="button" class="btn" id="myRTog" style="flex:0 0 auto;font-size:13px;padding:6px 12px;min-height:0">管理我的常用事由</button></div><div id="myRBox" class="hide" style="margin-top:8px"></div></div>
  <div class="sec"><label class="l">加班起迄時間</label>
   <div class="tt"><input class="in" type="time" id="os"><span>至</span><input class="in" type="time" id="oe"></div><div class="chips" id="tch"></div></div>
  <div class="sec"><label class="l">休息起迄時間</label>
@@ -455,7 +456,7 @@ addEventListener('resize',fit);
 let E,editing=-1,typeSet=false;
 const blank=()=>({dates:[],rsel:-1,tax:'',date:'',os:'',oe:'',rs:'',re:'',nr:false,type:'',norm:'',front:'',back:'',reason:''});
 function openSheet(i){
-  editing=i;typeSet=i>=0;E=i>=0?Object.assign(blank(),S.rows[i],{nr:!S.rows[i].rs}):blank();E.nm=!!E.norm;E.manual=i>=0;E.rsel=i>=0?cfg.reasons.findIndex(r=>r.t===E.reason):-1;E.dates=E.date?[E.date]:[];
+  editing=i;typeSet=i>=0;E=i>=0?Object.assign(blank(),S.rows[i],{nr:!S.rows[i].rs}):blank();E.nm=!!E.norm;E.manual=i>=0;E.rsel=i>=0?allR().findIndex(r=>r.t===E.reason):-1;E.dates=E.date?[E.date]:[];
   if(i<0){const o=cfg.defOt.split('-'),r=cfg.defRest.split('-');if(o[1]){E.os=o[0];E.oe=o[1]}if(r[1]){E.rs=r[0];E.re=r[1]}}
   $('#shT').textContent=i>=0?'編輯加班':'新增加班';$('#del').classList.toggle('hide',i<0);$('#saveN').classList.toggle('hide',i>=0);
   ['os','oe','rs','re','reason'].forEach(k=>$('#'+k).value=E[k]);$('#nr').checked=E.nr;
@@ -506,15 +507,35 @@ function drawHrs(){
 }
 $('#hrs').oninput=e=>{if(e.target.dataset.k){E[e.target.dataset.k]=e.target.value.trim();E.manual=true}};$('#recalc').onclick=()=>{E.manual=false;refreshHrs()};
 $('#hrs').onchange=e=>{if(e.target.id==='nm'){E.nm=e.target.checked;if(!E.nm)E.norm='';drawHrs()}};
+/* 我的常用事由：每位人員自己的事由（存在 ot 資料 ot-myr-v1:員編），顯示在後台常用事由前面，標示 ★ */
+const MYK=()=>'ot-myr-v1:'+(USER?USER.id:'');
+function loadMyR(){if(!USER)return [];try{return (JSON.parse(LS.getItem(MYK())||'[]')||[]).map(normR).filter(r=>r.t)}catch(e){return []}}
+function saveMyR(a){if(USER)LS.setItem(MYK(),JSON.stringify(a))}
+const allR=()=>loadMyR().concat(cfg.reasons);
+const rMeta=r=>[r.ot&&'加班 '+r.ot.replace('-','–'),r.rest&&'休息 '+r.rest.replace('-','–'),r.type&&('種類 '+r.type+' '+(TYPES[r.type]||''))].filter(Boolean).join('・');
+function drawMyR(){const b=$('#myRBox'),a=loadMyR();$('#myRTog').textContent='管理我的常用事由（'+a.length+'）';if(b.classList.contains('hide'))return;
+  b.innerHTML=a.length?a.map((r,i)=>'<div class="myr"><span>★ '+esc(r.t)+(rMeta(r)?'<small class="mut">'+esc(rMeta(r))+'</small>':'')+'</span><button type="button" data-m="up" data-i="'+i+'"'+(i?'':' disabled')+' aria-label="上移">▲</button><button type="button" data-m="dn" data-i="'+i+'"'+(i<a.length-1?'':' disabled')+' aria-label="下移">▼</button><button type="button" data-m="ren" data-i="'+i+'">改名</button><button type="button" data-m="del" data-i="'+i+'" style="color:#c0392b">刪除</button></div>').join('')+'<div class="mut" style="font-size:12px;margin-top:6px">要修改預設的時間或種類：先點選該事由，在下方調整好時間、休息、種類，再按「把目前的事由存成我的常用事由」即可覆蓋。</div>'
+   :'<div class="mut">還沒有自己的常用事由。在上方填好事由（也可以一起填好加班時間、休息、種類），再按「把目前的事由存成我的常用事由」。</div>'}
+$('#myRTog').onclick=()=>{$('#myRBox').classList.toggle('hide');drawMyR()};
+$('#myRSave').onclick=()=>{const t=$('#reason').value.trim();if(!t)return toast('請先在框內填寫加班事由');if(t.length>40)return toast('事由太長，常用事由請在 40 字以內');
+  const os=$('#os').value,oe=$('#oe').value,rs=$('#rs').value,re=$('#re').value,nr=$('#nr').checked;
+  const r=normR({t,ot:os&&oe?os+'-'+oe:'',rest:!nr&&rs&&re?rs+'-'+re:'',type:typeSet?E.type:'',tax:E.tax||cfg.tax});
+  const a=loadMyR(),k=a.findIndex(x=>x.t===t);if(k>=0)a[k]=r;else a.push(r);saveMyR(a);E.rsel=allR().findIndex(x=>x.t===t);drawChips();drawMyR();
+  toast((k>=0?'已更新':'已存成')+'我的常用事由'+(r.ot?'（含預設時間，之後選日期再點它即可直接送出）':''))};
+$('#myRBox').onclick=async e=>{const b=e.target.closest('[data-m]');if(!b)return;const a=loadMyR(),i=+b.dataset.i,m=b.dataset.m,cur=E&&E.rsel>=0?allR()[E.rsel]:null;
+  if(m==='up'||m==='dn'){const j=m==='up'?i-1:i+1;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]]}
+  else if(m==='ren'){const v=await dlg('修改事由文字',{input:1});if(v==null)return;const t=v.trim();if(!t)return toast('事由不能空白');if(a.some((x,k)=>k!==i&&x.t===t))return toast('已有相同的事由');a[i].t=t}
+  else if(m==='del'){if(!await dlg('刪除我的常用事由「'+a[i].t+'」？'))return;a.splice(i,1)}
+  saveMyR(a);if(E)E.rsel=cur?allR().findIndex(x=>x.t===cur.t&&x.ot===cur.ot):-1;drawChips();drawMyR()};
 function drawChips(){
   const chip=(k,t)=>'<button type="button" class="chip" data-'+k+'="'+esc(t)+'">'+esc(t.replace('-','–'))+'</button>';
   $('#tch').innerHTML=cfg.ot.map(t=>chip('t',t)).join('');$('#rtch').innerHTML=cfg.rest.map(t=>chip('t',t)).join('');
-  $('#rch').innerHTML=cfg.reasons.map((r,i)=>'<button type="button" class="chip'+(r.ot||r.rest||r.type||r.front||r.back?' pre':'')+(E&&E.rsel===i?' on':'')+'" data-r="'+i+'">'+esc(r.t)+'</button>').join('');
+  const nm=loadMyR().length;$('#rch').innerHTML=allR().map((r,i)=>'<button type="button" class="chip'+(r.ot||r.rest||r.type||r.front||r.back?' pre':'')+(E&&E.rsel===i?' on':'')+'" data-r="'+i+'"'+(rMeta(r)?' title="'+esc(rMeta(r))+'"':'')+'>'+(i<nm?'<span class="my">★</span>':'')+esc(r.t)+'</button>').join('');drawMyR();
 }
 $('#rtch').onclick=e=>{const t=e.target.dataset.t;if(!t)return;const p=t.split('-');$('#nr').checked=false;syncRest();$('#rs').value=p[0];$('#re').value=p[1];refreshHrs()};
 $('#tch').onclick=e=>{const t=e.target.dataset.t;if(!t)return;const p=t.split('-');$('#os').value=p[0];$('#oe').value=p[1];refreshHrs()};
 // 常用事由只能選一個：點選會取代框內文字（不再重複累加），再點一次同一個則取消
-$('#rch').onclick=e=>{const i=e.target.dataset.r;if(i==null)return;const o=cfg.reasons[+i],r=$('#reason');
+$('#rch').onclick=e=>{const c=e.target.closest('[data-r]');if(!c)return;const i=c.dataset.r,o=allR()[+i],r=$('#reason');
   if(E.rsel===+i){E.rsel=-1;if(r.value.trim()===o.t)r.value='';drawChips();return}
   E.rsel=+i;r.value=o.t;drawChips();
   if(o.ot){const p=o.ot.split('-');$('#os').value=p[0];$('#oe').value=p[1]}
@@ -527,7 +548,7 @@ $('#rch').onclick=e=>{const i=e.target.dataset.r;if(i==null)return;const o=cfg.r
 function syncRest(){const n=$('#nr').checked;$('#rs').disabled=$('#re').disabled=n;if(n){$('#rs').value=$('#re').value=''}
   $('#reason').placeholder=n?'請說明未休息的特殊原因':''}
 $('#nr').onchange=syncRest;
-$('#reason').addEventListener('input',()=>{if(E&&E.rsel>=0&&$('#reason').value.trim()!==cfg.reasons[E.rsel].t){E.rsel=-1;drawChips()}});
+$('#reason').addEventListener('input',()=>{const o=E&&E.rsel>=0?allR()[E.rsel]:null;if(o&&$('#reason').value.trim()!==o.t){E.rsel=-1;drawChips()}});
 $('.sheet').addEventListener('input',e=>{if(['os','oe','rs','re'].indexOf(e.target.id)>=0)refreshHrs()});$('.sheet').addEventListener('change',e=>{if(e.target.id==='nr')refreshHrs()});
 $('.sheet').addEventListener('input',dayHint);$('.sheet').addEventListener('change',dayHint);$('.sheet').addEventListener('click',()=>setTimeout(dayHint,0));
 $('#shX').onclick=closeSheet;$('#bg').onclick=e=>{if(e.target.id==='bg')closeSheet()};
