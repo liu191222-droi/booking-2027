@@ -239,8 +239,16 @@ const LS=(function(){
   const db=OT&&OT.db?OT.db():null;
   if(!db){let s=null;try{s=window.localStorage}catch(e){}const m={};
     return {getItem:k=>s?s.getItem(k):(k in m?m[k]:null),setItem:(k,v)=>{if(s)s.setItem(k,v);else m[k]=String(v)},removeItem:k=>{if(s)s.removeItem(k);else delete m[k]},
-      key:i=>s?s.key(i):Object.keys(m)[i],get length(){return s?s.length:Object.keys(m).length},flushAll(){},start(cb){cb()},onChange:null}}
+      key:i=>s?s.key(i):Object.keys(m)[i],get length(){return s?s.length:Object.keys(m).length},flushAll(){},start(cb){cb()},onChange:null,canWrite:()=>true,warn(){}}}
   const cache={},timers={},inflight={};
+  /* 保護措施：還沒從資料庫（伺服器）讀到資料、或連線中斷時，一律不寫入，避免用空白或過時的資料蓋掉原本的內容 */
+  let state='loading';
+  function warn(){let b=document.getElementById('dbWarn');if(!b){b=document.createElement('div');b.id='dbWarn';
+      b.style.cssText='position:fixed;left:0;right:0;top:0;z-index:99;background:#c0392b;color:#fff;padding:10px 14px;font-size:14px;text-align:center;font-weight:700';
+      document.body.appendChild(b)}
+    b.textContent=state==='fail'?'⚠ 與資料庫的連線中斷，變更不會被儲存。請重新整理頁面後再操作。':'⚠ 尚未連上資料庫，變更不會被儲存。請稍候或重新整理頁面後再操作。';
+    if(typeof toast==='function')toast('目前無法連線到資料庫，這次的變更沒有儲存')}
+  const blocked=()=>{if(state==='ok')return false;warn();return true};
   const did=k=>'o'+k.replace(/[^A-Za-z0-9]/g,c=>'_'+c.charCodeAt(0).toString(16));
   const col=()=>db.collection('ot'),busy=k=>(k in timers)||inflight[k]>0;
   // Firestore 在主頁面載入，只接受主頁面建立的物件；iframe 自己的 {} 會被判定為「custom Object」而拒絕寫入
@@ -251,15 +259,15 @@ const LS=(function(){
     Promise.resolve(p).then(null,()=>{}).then(()=>{inflight[k]--})}
   const api={
     getItem:k=>k in cache?cache[k]:null,
-    setItem(k,v){cache[k]=String(v);if(k in timers)clearTimeout(timers[k]);timers[k]=setTimeout(()=>flush(k),400)},
-    removeItem(k){delete cache[k];if(k in timers)clearTimeout(timers[k]);timers[k]=setTimeout(()=>flush(k),0)},
+    setItem(k,v){if(blocked())return;cache[k]=String(v);if(k in timers)clearTimeout(timers[k]);timers[k]=setTimeout(()=>flush(k),400)},
+    removeItem(k){if(blocked())return;delete cache[k];if(k in timers)clearTimeout(timers[k]);timers[k]=setTimeout(()=>flush(k),0)},
     key:i=>Object.keys(cache)[i]||null,get length(){return Object.keys(cache).length},
-    flushAll(){Object.keys(timers).forEach(flush)},onChange:null,
-    start(cb){let first=true;
-      col().onSnapshot(snap=>{const ch=[];
+    flushAll(){Object.keys(timers).forEach(flush)},onChange:null,canWrite:()=>state==='ok',warn,
+    start(cb){let first=true;const W=(OT&&window.parent)||window,opt=new W.Object();opt.includeMetadataChanges=true;
+      col().onSnapshot(opt,snap=>{const ch=[];if(snap.metadata&&!snap.metadata.fromCache){state='ok';const b=document.getElementById('dbWarn');if(b)b.remove()}
         snap.docs.forEach(d=>{const x=d.data();if(!x||typeof x.k!=='string'||typeof x.v!=='string'||busy(x.k))return;if(cache[x.k]!==x.v){cache[x.k]=x.v;ch.push(x.k)}});
         if(first){first=false;cb()}else if(ch.length&&api.onChange)api.onChange(ch)},
-        ()=>{if(first){first=false;cb()}})}};
+        ()=>{state='fail';if(!first)warn();if(first){first=false;cb()}})}};
   return api})();
 
 const $=s=>document.querySelector(s),MAXR=17,WD='日一二三四五六',
@@ -508,7 +516,7 @@ $('#hrs').onchange=e=>{if(e.target.id==='nm'){E.nm=e.target.checked;if(!E.nm)E.n
 /* 我的常用事由：每位人員自己的事由（存在 ot 資料 ot-myr-v1:員編），顯示在後台常用事由前面，標示 ★ */
 const MYK=()=>'ot-myr-v1:'+(USER?USER.id:'');
 function loadMyR(){if(!USER)return [];try{return (JSON.parse(LS.getItem(MYK())||'[]')||[]).map(normR).filter(r=>r.t)}catch(e){return []}}
-function saveMyR(a){if(USER)LS.setItem(MYK(),JSON.stringify(a))}
+function saveMyR(a){if(!LS.canWrite()){LS.warn();return false}if(USER)LS.setItem(MYK(),JSON.stringify(a));return true}
 const allR=()=>loadMyR().concat(cfg.reasons);
 const rMeta=r=>[r.ot&&'加班 '+r.ot.replace('-','–'),r.rest&&'休息 '+r.rest.replace('-','–'),r.type&&('種類 '+r.type+' '+(TYPES[r.type]||''))].filter(Boolean).join('・');
 function drawMyR(){const b=$('#myRBox'),a=loadMyR();$('#myRTog').textContent='管理我的常用事由（'+a.length+'）';if(b.classList.contains('hide'))return;
@@ -518,13 +526,13 @@ $('#myRTog').onclick=()=>{$('#myRBox').classList.toggle('hide');drawMyR()};
 $('#myRSave').onclick=()=>{const t=$('#reason').value.trim();if(!t)return toast('請先在框內填寫加班事由');if(t.length>40)return toast('事由太長，常用事由請在 40 字以內');
   const os=$('#os').value,oe=$('#oe').value,rs=$('#rs').value,re=$('#re').value,nr=$('#nr').checked;
   const r=normR({t,ot:os&&oe?os+'-'+oe:'',rest:!nr&&rs&&re?rs+'-'+re:'',type:typeSet?E.type:'',tax:E.tax||cfg.tax});
-  const a=loadMyR(),k=a.findIndex(x=>x.t===t);if(k>=0)a[k]=r;else a.push(r);saveMyR(a);E.rsel=allR().findIndex(x=>x.t===t);drawChips();drawMyR();
+  const a=loadMyR(),k=a.findIndex(x=>x.t===t);if(k>=0)a[k]=r;else a.push(r);if(!saveMyR(a))return;E.rsel=allR().findIndex(x=>x.t===t);drawChips();drawMyR();
   toast((k>=0?'已更新':'已存成')+'我的常用事由'+(r.ot?'（含預設時間，之後選日期再點它即可直接送出）':''))};
 $('#myRBox').onclick=async e=>{const b=e.target.closest('[data-m]');if(!b)return;const a=loadMyR(),i=+b.dataset.i,m=b.dataset.m,cur=E&&E.rsel>=0?allR()[E.rsel]:null;
   if(m==='up'||m==='dn'){const j=m==='up'?i-1:i+1;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]]}
   else if(m==='ren'){const v=await dlg('修改事由文字',{input:1});if(v==null)return;const t=v.trim();if(!t)return toast('事由不能空白');if(a.some((x,k)=>k!==i&&x.t===t))return toast('已有相同的事由');a[i].t=t}
   else if(m==='del'){if(!await dlg('刪除我的常用事由「'+a[i].t+'」？'))return;a.splice(i,1)}
-  saveMyR(a);if(E)E.rsel=cur?allR().findIndex(x=>x.t===cur.t&&x.ot===cur.ot):-1;drawChips();drawMyR()};
+  if(!saveMyR(a))return;if(E)E.rsel=cur?allR().findIndex(x=>x.t===cur.t&&x.ot===cur.ot):-1;drawChips();drawMyR()};
 function drawChips(){
   const chip=(k,t)=>'<button type="button" class="chip" data-'+k+'="'+esc(t)+'">'+esc(t.replace('-','–'))+'</button>';
   $('#tch').innerHTML=cfg.ot.map(t=>chip('t',t)).join('');$('#rtch').innerHTML=cfg.rest.map(t=>chip('t',t)).join('');
