@@ -266,7 +266,7 @@ const myCode=()=>{const u=hostUser();return u?String(u.code):''};
 const now=new Date();
 const S={db:null,user:null,dl:undefined,demo:false,admin:false,ready:false,err:'',
   config:null,staff:[],sched:{},ym:ymOf(now.getMonth()===11?now.getFullYear()+1:now.getFullYear(),now.getMonth()===11?1:now.getMonth()+2), /* 預設為下個月 */
-  tab:'mine',tool:null,anchor:null,draft:null,myShifts:{},addShift:null,custom:{st:'09:00',en:'13:00',brk:0},me:'',fill:{shift:'',skipWk:true,who:''},unsubSched:null,hist:[],histSid:null,unsubHist:null};
+  tab:'mine',tool:null,anchor:null,draft:null,myShifts:{},addShift:null,custom:{st:'09:00',en:'13:00',brk:0},me:'',fill:{shift:'',skipWk:true,who:''},unsubSched:null,fixed:{},schedYm:'',fxDone:{},hist:[],histSid:null,unsubHist:null};
 try{S.me=localStorage.getItem('pt-me')||''}catch(e){}
 const isDenied=e=>e&&(e.code==='permission_denied'||e.code==='permission-denied');
 
@@ -319,7 +319,7 @@ async function boot(){
   const done=()=>{if(gotC&&gotS&&!S.ready){S.ready=true;clearTimeout(t)}render()};
   const fail=e=>{clearTimeout(t);S.err=isDenied(e)?'讀取資料失敗：資料庫尚未開放兼職藥師排班的資料（請管理者到 Firebase 主控台更新存取規則）。':'讀取資料失敗：'+(e&&e.message||'請稍後再試');render()};
   db.doc('config/main').onSnapshot(s=>{S.config=s.exists?Object.assign({},DEFAULT_CONFIG,s.data()):null;gotC=true;done()},fail);
-  db.collection('myshifts').onSnapshot(q=>{const o={};q.docs.forEach(d=>{const v=d.data();o[d.id]=Array.isArray(v.shifts)?v.shifts:[]});S.myShifts=o;render()},()=>{});
+  db.collection('myshifts').onSnapshot(q=>{const o={},fx={};q.docs.forEach(d=>{const v=d.data();o[d.id]=Array.isArray(v.shifts)?v.shifts:[];fx[d.id]=Array.isArray(v.fixedOff)?v.fixedOff.map(Number):[]});S.myShifts=o;S.fixed=fx;render()},()=>{});
   db.collection('staff').onSnapshot(q=>{S.ptset=q.docs.map(d=>Object.assign({id:d.id},d.data()));S.staff=buildStaff();gotS=true;done()},fail);
   subSched();
   S.dl=DL;
@@ -327,9 +327,9 @@ async function boot(){
 function subSched(){
   if(S.demo)return;
   if(S.unsubSched)S.unsubSched();
-  S.sched={};
+  S.sched={};S.schedYm='';const ym=S.ym;
   S.unsubSched=S.db.collection('sched').where('month','==',S.ym).onSnapshot(q=>{
-    const o={};q.docs.forEach(d=>{const v=d.data();o[v.staffId]=v});S.sched=o;render();
+    const o={};q.docs.forEach(d=>{const v=d.data();o[v.staffId]=v});S.sched=o;S.schedYm=ym;render();
   },e=>toast('班表讀取失敗'));
 }
 function startDemo(){
@@ -360,10 +360,16 @@ async function saveDays(sid,patch,status){
     return true;
   }catch(e){toast('儲存失敗：'+(isDenied(e)?'沒有編輯權限':'請稍後再試'));return false}
 }
-async function saveMyShifts(sid,list){
-  if(S.demo){S.myShifts[sid]=list;render();return true}
-  try{await S.db.doc('myshifts/'+sid).set({staffId:sid,shifts:list,updatedAt:Date.now()});return true}catch(e){toast('常用班別儲存失敗');return false}
+async function saveMyShifts(sid,list,fixed){
+  const fx=fixed||S.fixed[sid]||[];
+  if(S.demo){S.myShifts[sid]=list;S.fixed[sid]=fx;render();return true}
+  try{await S.db.doc('myshifts/'+sid).set({staffId:sid,shifts:list,fixedOff:fx,updatedAt:Date.now()});return true}catch(e){toast('儲存失敗');return false}
 }
+/* 每週固定排休：人員自選星期幾（存在 ptmyshifts 的 fixedOff），自動在該月空白的那幾天帶出「OFF 固定」 */
+function fixedPatch(st,fx){const p={};for(let d=1;d<=dim(S.ym);d++){if(!dayOpen(d))continue;const w=dow(S.ym,d),e=entry(st.id,d);
+  if(fx.includes(w)){if(!e)p['d'+d]={t:'OFF',fx:true}}else if(e&&e.t==='OFF'&&e.fx)p['d'+d]=null}return p}
+function fixedHtml(me,ro){const fx=S.fixed[me.id]||[];
+  return `<div class="row small" style="gap:10px;align-items:center;background:var(--surface-2);border-radius:9px;padding:8px 12px"><b>每週固定排休</b>${[1,2,3,4,5].map(w=>`<label class="row" style="gap:4px"><input type="checkbox" class="fxday" value="${w}" ${fx.includes(w)?'checked':''} ${locked()?'disabled':''}>週${WD[w]}</label>`).join('')}<span class="muted">勾選後，每個月的這幾天會自動排 OFF，隨時可以更改。</span></div>`}
 async function updateMyShift(id,v){
   const me=S.staff.find(x=>x.id===S.me);if(!me)return;
   const list=myShifts(S.me).map(x=>x.id===id?Object.assign({},x,v,{code:v.name.slice(0,2),fromId:null}):x);
@@ -461,6 +467,9 @@ function viewMine(){
   if(!S.admin&&!me)return `<div class="empty">你（員工編號 ${esc(myCode())}）目前不在兼職人員名單中，請洽主管。</div>`;
   let h=`<section class="panel"><div class="me">${S.admin?`<label class="f">我是（主管可切換人員）
     <select id="meSel"><option value="">選擇人員</option>${list.map(s=>`<option value="${s.id}" ${s.id===S.me?'selected':''}>${esc(s.code)}　${esc(s.name)}</option>`).join('')}</select></label>`:`<div><span class="muted small">我是</span><div style="font-size:18px;font-weight:700">${esc(me.code)}　${esc(me.name)}</div></div>`}`;
+  /* 新的月份（尚無班表、未鎖定）：自動帶入固定排休 */
+  if(me&&(S.demo||S.schedYm===S.ym)&&!S.fxDone[S.ym+'|'+me.id]){S.fxDone[S.ym+'|'+me.id]=1; // 每個月只在第一次打開時判斷一次，避免存檔途中重複帶入
+    if(!S.sched[me.id]&&!hasDraft(me.id)&&!locked()&&(S.fixed[me.id]||[]).length){const p=fixedPatch(me,S.fixed[me.id]);if(Object.keys(p).length)Object.assign(ensureDraft(me.id),p)}}
   if(me){const t=totals(me),doc=S.sched[me.id],c=cap(),pct=c?Math.min(100,t.hours/c*100):0;
     h+=`<div class="stat"><span style="font-size:18px;font-weight:700;color:var(--ink)">${roc(S.ym)}排班時數</span><b class="num">${fmtH(t.hours)}${c?`<span class="capof"> / ${c}</span>`:''}</b><span class="small muted">OFF ${t.R} 天</span></div></div>
     ${c?`<div class="capbar ${t.hours>=c?'full':''}" role="progressbar" aria-valuemin="0" aria-valuemax="${c}" aria-valuenow="${t.hours}"><span style="width:${pct}%"></span></div>`:''}
@@ -471,6 +480,7 @@ function viewMine(){
   if(!me)return h;
   const lk=locked(),sent=!hasDraft(me.id)&&S.sched[me.id]&&S.sched[me.id].status==='sent',ro=lk; // 送出後仍可直接修改（班別、OFF、常用班別都保留），只有主管鎖定的月份才唯讀
   h+=`<section class="panel ${ro?'':'has-x'}">${ro?'':`<button class="px" data-act="clearAll" data-label="✕" title="全部清除" aria-label="全部清除">✕</button>`}<h2>${esc(cfg().staffTitle||'排 OFF 與上班日')}<small>${sent?'已送出；如需調整，直接修改後再按「送出」':esc(cfg().staffSub||'')}</small></h2>${cfg().staffGuide?`<div class="guide">${esc(cfg().staffGuide).replace(/\n/g,'<br>')}</div>`:''}`;
+  h+=fixedHtml(me,ro);
   if(!ro)h+=toolsHtml(effMode(me),me.id);
   h+=calendarHtml(me,ro);
   const w=weekCheck(me);if(w)h+=`<span class="small muted">${w}</span>`;
@@ -529,7 +539,7 @@ function toolsHtml(mode,sid){
 function chipHtml(e,mine){
   if(!e)return '';
   if(e.t==='R')return `<span class="chip R">R 例假</span>`;
-  if(e.t==='OFF')return e.auto?`<span class="chip OFF auto" title="已達每月時數上限，自動帶出">OFF 自動</span>`:`<span class="chip OFF">OFF 排休</span>`;
+  if(e.t==='OFF')return e.auto?`<span class="chip OFF auto" title="已達每月時數上限，自動帶出">OFF 自動</span>`:e.fx?`<span class="chip OFF" title="每週固定排休">OFF 固定</span>`:`<span class="chip OFF">OFF 排休</span>`;
   if(e.t==='F')return `<span class="chip F">F 休息</span>`;
   return `<span class="chip w ${mine?'':'mgr'}">${esc(e.code||'班')} <span class="h">${fmtH(e.h)}h</span><span class="t num"><br>${e.st}–${e.en}</span></span>`;
 }
@@ -776,6 +786,11 @@ document.addEventListener('change',e=>{
   if(t.classList&&t.classList.contains('tm'))t.value=normTime(t.value);
   if(['psSt','psEn','psBrk','psName'].includes(t.id)&&S.addShift){S.addShift={editId:S.addShift.editId,orig:S.addShift.orig,name:document.getElementById('psName').value,st:normTime(document.getElementById('psSt').value)||document.getElementById('psSt').value,en:normTime(document.getElementById('psEn').value)||document.getElementById('psEn').value,brk:Number(document.getElementById('psBrk').value)||0};
     /* 只更新時數，不重畫畫面，按 Tab 才能順利移到下一欄 */const A=S.addShift,hEl=document.getElementById('psH');if(hEl&&normTime(A.st)&&normTime(A.en))hEl.textContent=fmtH(hrs(A.st,A.en,A.brk))}
+  if(t.classList&&t.classList.contains('fxday')){const me=S.staff.find(x=>x.id===S.me);if(!me)return;
+    const fx=[...document.querySelectorAll('.fxday:checked')].map(x=>Number(x.value)).sort();
+    saveMyShifts(me.id,myShifts(me.id),fx).then(ok=>{if(!ok)return;S.fixed[me.id]=fx;let n=0;
+      if(!locked()){const p=fixedPatch(me,fx);n=Object.keys(p).length;if(n)Object.assign(ensureDraft(me.id),p)}
+      render();toast(fx.length?'已設定每週固定排休：'+fx.map(w=>'週'+WD[w]).join('、')+(n?'；'+roc(S.ym)+'已更新 '+n+' 天，記得暫存或送出':''):'已取消固定排休'+(n?'；'+roc(S.ym)+'已移除 '+n+' 天，記得暫存或送出':''))});return}
   if(t.id==='fillShift')S.fill.shift=t.value;
   if(t.id==='fillWk')S.fill.skipWk=t.checked;
   if(t.id==='fillWho')S.fill.who=t.value;
