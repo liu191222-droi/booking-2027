@@ -26,7 +26,7 @@
 
 ## 資料（Firestore，專案 `booking-2027-9ee88`）
 
-集合：`bookings`（預約）、`config`（`main` 系統設定，含 `holidays` 全年度行事曆／醫院公休日、`calpdf` 行事曆 PDF（base64，由後台上傳，不放進儲存庫）、`staff` 員工名單、`close_YYYY-MM` 月份關閉）、`pw`（密碼雜湊）、`avail`（大夜班填寫）、`sched`（大夜班表）、`ot`（加班資料；文件內 `k` 為 `ot-form-v1:員編@年-月` 申請單、`ot-myr-v1:員編` 個人常用事由、`ot-cfg-v1` 設定、`ot-rev-v1` 審核）、`ptconfig`／`ptstaff`／`ptsched`／`ptmyshifts`（兼職藥師排班）。
+集合：`bookings`（預約）、`config`（`main` 系統設定，含 `holidays` 年度行事曆（後台與每個人都可看的「2027年行事曆」）／醫院公休日、`calpdf` 行事曆 PDF（base64，由後台上傳，不放進儲存庫）、`staff` 員工名單、`close_YYYY-MM` 月份關閉）、`pw`（密碼雜湊）、`avail`（大夜班填寫）、`sched`（大夜班表）、`ot`（加班資料；文件內 `k` 為 `ot-form-v1:員編@年-月` 申請單、`ot-myr-v1:員編` 個人常用事由、`ot-cfg-v1` 設定、`ot-rev-v1` 審核）、`ptconfig`／`ptstaff`／`ptsched`／`ptmyshifts`（兼職藥師排班）。
 規則只允許已匿名登入的使用者讀寫這些集合；新增集合時要同時更新 `firestore.rules` 並請使用者到主控台發布。
 
 ## 安全規則
