@@ -516,12 +516,12 @@ $('#hrs').onchange=e=>{if(e.target.id==='nm'){E.nm=e.target.checked;if(!E.nm)E.n
 /* 我的常用事由：每位人員自己的事由（存在 ot 資料 ot-myr-v1:員編），顯示在後台常用事由前面，標示 ★ */
 const MYK=()=>'ot-myr-v1:'+(USER?USER.id:'');
 function loadMyR(){if(!USER)return [];try{return (JSON.parse(LS.getItem(MYK())||'[]')||[]).map(normR).filter(r=>r.t)}catch(e){return []}}
-function saveMyR(a){if(!LS.canWrite()){LS.warn();return false}if(USER)LS.setItem(MYK(),JSON.stringify(a));return true}
+function saveMyR(a){if(!LS.canWrite()){LS.warn();return false}if(USER){LS.setItem(MYK(),JSON.stringify(a));LS.flushAll()}return true} // 立即寫入資料庫，不等延遲，避免馬上關閉頁面時遺失
 const allR=()=>loadMyR().concat(cfg.reasons);
 const rMeta=r=>[r.ot&&'加班 '+r.ot.replace('-','–'),r.rest&&'休息 '+r.rest.replace('-','–'),r.type&&('種類 '+r.type+' '+(TYPES[r.type]||''))].filter(Boolean).join('・');
-function drawMyR(){const b=$('#myRBox'),a=loadMyR();$('#myRTog').textContent='管理我的常用事由（'+a.length+'）';if(b.classList.contains('hide'))return;
-  b.innerHTML=a.length?a.map((r,i)=>'<div class="myr"><span>★ '+esc(r.t)+(rMeta(r)?'<small class="mut">'+esc(rMeta(r))+'</small>':'')+'</span><button type="button" data-m="up" data-i="'+i+'"'+(i?'':' disabled')+' aria-label="上移">▲</button><button type="button" data-m="dn" data-i="'+i+'"'+(i<a.length-1?'':' disabled')+' aria-label="下移">▼</button><button type="button" data-m="ren" data-i="'+i+'">改名</button><button type="button" data-m="del" data-i="'+i+'" style="color:#c0392b">刪除</button></div>').join('')+'<div class="mut" style="font-size:12px;margin-top:6px">要修改預設的時間或種類：先點選該事由，在下方調整好時間、休息、種類，再按「把目前的事由存成我的常用事由」即可覆蓋。</div>'
-   :'<div class="mut">還沒有自己的常用事由。在上方填好事由（也可以一起填好加班時間、休息、種類），再按「把目前的事由存成我的常用事由」。</div>'}
+function drawMyR(){const b=$('#myRBox'),a=loadMyR();$('#myRTog').textContent='管理我的常用事由（'+a.length+'）';$('#myRTog').title='目前帳號：'+(USER?USER.id:'');if(b.classList.contains('hide'))return;
+  b.innerHTML=a.length?a.map((r,i)=>'<div class="myr"><span>★ '+esc(r.t)+(rMeta(r)?'<small class="mut">'+esc(rMeta(r))+'</small>':'')+'</span><button type="button" data-m="up" data-i="'+i+'"'+(i?'':' disabled')+' aria-label="上移">▲</button><button type="button" data-m="dn" data-i="'+i+'"'+(i<a.length-1?'':' disabled')+' aria-label="下移">▼</button><button type="button" data-m="ren" data-i="'+i+'">改名</button><button type="button" data-m="del" data-i="'+i+'" style="color:#c0392b">刪除</button></div>').join('')+'<div class="mut" style="font-size:12px;margin-top:6px">這些是帳號「'+esc(USER?USER.id:'')+'」的常用事由，換其他帳號登入會看不到。要修改預設的時間或種類：先點選該事由，在下方調整好時間、休息、種類，再按「把目前的事由存成我的常用事由」即可覆蓋。</div>'
+   :'<div class="mut">帳號「'+esc(USER?USER.id:'')+'」還沒有自己的常用事由。在上方填好事由（也可以一起填好加班時間、休息、種類），再按「把目前的事由存成我的常用事由」。</div>'}
 $('#myRTog').onclick=()=>{$('#myRBox').classList.toggle('hide');drawMyR()};
 $('#myRSave').onclick=()=>{const t=$('#reason').value.trim();if(!t)return toast('請先在框內填寫加班事由');if(t.length>40)return toast('事由太長，常用事由請在 40 字以內');
   const os=$('#os').value,oe=$('#oe').value,rs=$('#rs').value,re=$('#re').value,nr=$('#nr').checked;
