@@ -157,7 +157,7 @@ function normCfg(d){d=d||{};const o=(d.options||DEF.options).slice();if(!d.eduSl
   const slotItems=Array.isArray(d.slotItems)?d.slotItems.map(x=>({n:x.n,ss:(x.ss||[]).map(y=>sessObj(y.d,y.t,y.m)),c:!!x.c})):o.filter(x=>SLOT_TYPES.includes(x)||x===EDU).map(n=>({n,ss:[],c:n===EDU}));
   const dateItems=Array.isArray(d.dateItems)?d.dateItems.slice():o.filter(x=>!SLOT_TYPES.includes(x)&&x!==EDU);
   if(!dateItems.includes("生日體檢")&&!slotItems.some(x=>x.n==="生日體檢"))dateItems.unshift("生日體檢");
-  return{options:dateItems.concat(slotItems.map(x=>x.n)),dateItems,slotItems,slots:sl,eduSlots:es,blocked:d.blocked||[],monthMode:d.monthMode||{},limits:normLim(d.limits),holidays:normHol(d.holidays),admins:Array.isArray(d.admins)?d.admins.map(String).filter(Boolean):[],calPdf:d.calPdf&&d.calPdf.name?{name:String(d.calPdf.name),at:+d.calPdf.at||0}:null}}
+  return{options:dateItems.concat(slotItems.map(x=>x.n)),dateItems,slotItems,slots:sl,eduSlots:es,blocked:d.blocked||[],monthMode:d.monthMode||{},limits:normLim(d.limits),holidays:normHol(d.holidays),admins:Array.isArray(d.admins)?d.admins.map(String).filter(Boolean):[],calPdf:d.calPdf&&d.calPdf.name?{name:String(d.calPdf.name),at:+d.calPdf.at||0}:null,closed:Array.isArray(d.closed)?d.closed.map(String):[]}}
 /* 報名人數限制：沒有設定＝不限定。「只選日期」項目存在 limits={項目名稱:人數}，以每天計；「日期＋時段」項目存在各場次的 m（每場人數上限） */
 function sessObj(d,t,m){const o={d,t},n=Math.floor(+m);if(n>0)o.m=n;return o}
 const sessLimit=(t,d,sl)=>{const it=cfg.slotItems.find(x=>x.n===t),s=it&&it.ss.find(y=>y.d===d&&y.t===sl);return s&&s.m||0};
@@ -272,8 +272,10 @@ function dayOff(d){if(monthLocked(d))return "locked";if(d<todayS())return "past"
   if(sType==="生日體檢"){if(holOff(d))return "hol";const w=new Date(d+"T00:00:00").getDay();if(w===0||w===6)return "wkend"}if(sType==="生日體檢"&&birthdayTaken(d))return "taken";if(sType&&!slotKind(sType)&&isFull(sType,d,"",editId))return "full";return ""}
 function slotCount(d,s){return bookings.filter(x=>x.date===d&&x.slot===s&&x.id!==editId).length}
 /* 日期＋時段的項目（新人教育訓練、CPR、退修會等）：後台尚未設定可預約的場次、也不允許自訂時間時，不能點進去 */
+/* 預約項目開關：後台關閉的項目（cfg.closed）人員不能點選，顯示「尚未開始報名/預約」 */
+const isClosed=t=>(cfg.closed||[]).includes(t)&&!(editId&&sType===t);
 const notOpen=t=>{const it=cfg.slotItems.find(x=>x.n===t);return !!it&&!it.c&&!it.ss.some(x=>x.d>=todayS())&&!(editId&&sType===t)};
-function pickType(v){if(notOpen(v)){notice("尚未開放報名");return}sSlot="";sSess="";if(slotKind(v))sDate="";sType=v;if(sDate&&dayOff(sDate))sDate="";render()}
+function pickType(v){if(isClosed(v)){notice("尚未開始報名/預約");return}if(notOpen(v)){notice("尚未開放報名");return}sSlot="";sSess="";if(slotKind(v))sDate="";sType=v;if(sDate&&dayOff(sDate))sDate="";render()}
 function pickDate(d){if(monthLocked(d)){notice(LOCK_MSG);return}if(dayOff(d)==="taken"){notice(bdGiven(d)+"已約"+(+d.slice(5,7))+"月"+(+d.slice(8))+"日的生日體檢，請改選擇其他日期。");return}sDate=d;render()}
 function pickSlot(s){sSlot=s;if(s==="__custom"){sSess="";sDate=""}render()}
 function pickSess(k){const i=k.indexOf("|");sSess=k;sDate=k.slice(0,i);sSlot=k.slice(i+1);render()}
@@ -281,7 +283,7 @@ function calNav(n){calM=Math.min(11,Math.max(0,calM+n));render()}
 function jumpFirst(){const t=todayS();for(let m=0;m<12;m++){const n=new Date(YEAR,m+1,0).getDate();for(let d=1;d<=n;d++){const ds=`${YEAR}-${pad(m+1)}-${pad(d)}`;if(ds>=t&&!dayOff(ds)){calM=m;sDate=ds;render();return}}}flash("目前沒有可預約的日期")}
 function formView(){
   const mine=bookings.filter(b=>b.code===user.code).sort((a,b)=>a.date.localeCompare(b.date)||slotRank(a.slot).localeCompare(slotRank(b.slot)));
-  const types=cfg.options.map(o=>`<button class="pick ${sType===o?"on":""}" data-v="${esc(o)}" onclick="pickType(this.dataset.v)">${o==="生日體檢"?"🎂 ":""}${esc(o)}${limitOf(o)?`<small class="mut" style="display:block">每天限定 ${limitOf(o)} 人</small>`:""}${notOpen(o)?`<small class="mut" style="display:block">尚未開放報名</small>`:""}</button>`).join("")
+  const types=cfg.options.map(o=>`<button class="pick ${sType===o?"on":""}" data-v="${esc(o)}" onclick="pickType(this.dataset.v)">${o==="生日體檢"?"🎂 ":""}${esc(o)}${limitOf(o)?`<small class="mut" style="display:block">每天限定 ${limitOf(o)} 人</small>`:""}${isClosed(o)?`<small class="mut" style="display:block">尚未開始報名/預約</small>`:notOpen(o)?`<small class="mut" style="display:block">尚未開放報名</small>`:""}</button>`).join("")
     +`<button class="pick ${sType==="__other"?"on":""}" onclick="pickType('__other')">其他</button>`;
   const other=sType==="__other"?`<input type="text" id="other" value="${esc(sOther)}" oninput="sOther=this.value" placeholder="請輸入預約項目" style="margin-top:12px">`:"";
   const first=new Date(YEAR,calM,1).getDay(),days=new Date(YEAR,calM+1,0).getDate();
@@ -428,6 +430,10 @@ function askText(m,v){return new Promise(r=>{const d=document.createElement("div
   d.querySelector("#an").onclick=()=>{d.remove();r(null)};d.querySelector("#ay").onclick=()=>{const x=i.value.trim();d.remove();r(x||null)}})}
 async function cfgSave(p){const o={...cfg,...p};o.options=o.dateItems.concat(o.slotItems.map(x=>x.n));
   try{await store.saveCfg(o);cfg=normCfg(o);render();return true}catch(e){flash("儲存失敗，請稍後再試");return false}}
+function clMove(old,nw){const a=(cfg.closed||[]).filter(x=>x!==old);if(nw&&(cfg.closed||[]).includes(old))a.push(nw);return a}
+async function setOpen(n,on){const a=(cfg.closed||[]).filter(x=>x!==n);if(!on)a.push(n);if(await cfgSave({closed:a}))flash((on?"已開放：":"已關閉：")+n)}
+function openCardHtml(){const rows=cfg.options.map(n=>{const on=!(cfg.closed||[]).includes(n);return `<tr><td>${n==="生日體檢"?"🎂 ":""}${esc(n)}</td><td><label class="opt" style="padding:0"><input type="checkbox" ${on?"checked":""} data-n="${esc(n)}" onchange="setOpen(this.dataset.n,this.checked)"> ${on?`<b style="color:#007440">開放中</b>`:`<b style="color:var(--dn)">已關閉</b>`}</label></td></tr>`}).join("");
+  return `<div class="card"><h2>預約項目開關</h2><div class="mut" style="margin-bottom:8px">取消勾選就會關閉該項目，同事的預約畫面會顯示「尚未開始報名/預約」，無法點選；已經預約的人仍可修改或取消。</div><div class="scroll"><table><tr><th>項目</th><th>開放</th></tr>${rows}</table></div></div>`}
 function limMove(old,nw){const o={...(cfg.limits||{})};if(old in o){if(nw)o[nw]=o[old];delete o[old]}return o}
 async function setLimit(n,on,v){const o={...(cfg.limits||{})};if(!on)delete o[n];else{const x=Math.floor(+v);if(!(x>0))return flash("請輸入大於 0 的人數");o[n]=x}await cfgSave({limits:o})}
 function limitCardHtml(){const rows=cfg.dateItems.filter(n=>n!=="生日體檢").map((n,i)=>{const L=limitOf(n);return `<tr><td>${esc(n)}<div class="mut" style="font-size:12px">每天計算</div></td><td><select style="width:auto" onchange="if(this.value==='0')setLimit(this.dataset.n,false);else{const e=$('lim_${i}');e.style.display='';e.focus()}" data-n="${esc(n)}"><option value="0" ${L?"":"selected"}>沒有限定</option><option value="1" ${L?"selected":""}>有限定人數</option></select> <span id="lim_${i}" style="white-space:nowrap;${L?"":"display:none"}"><input type="number" min="1" step="1" value="${L||""}" style="width:80px" data-n="${esc(n)}" onchange="setLimit(this.dataset.n,true,this.value)"> 人</span></td></tr>`}).join("");
@@ -437,12 +443,12 @@ async function migrateBookings(match,patch){for(const b of bookings.filter(match
 const itemTaken=v=>cfg.options.includes(v)||v==="其他";
 async function addDateItem(){const v=$("newdi").value.trim();if(!v)return;if(itemTaken(v))return flash("已有相同項目");await cfgSave({dateItems:[...cfg.dateItems,v]})}
 async function renameDateItem(i){const old=cfg.dateItems[i];if(old==="生日體檢")return;const v=await askText("修改項目名稱",old);if(!v||v===old)return;if(itemTaken(v))return flash("已有相同項目");
-  const d=cfg.dateItems.slice();d[i]=v;if(await cfgSave({dateItems:d,limits:limMove(old,v)}))await migrateBookings(b=>b.type===old,{type:v})}
-async function rmDateItem(i){const old=cfg.dateItems[i];if(old==="生日體檢")return;if(!await ask("確定刪除「"+old+"」？（已有的預約不受影響）"))return;await cfgSave({dateItems:cfg.dateItems.filter((_,j)=>j!==i),limits:limMove(old)})}
+  const d=cfg.dateItems.slice();d[i]=v;if(await cfgSave({dateItems:d,limits:limMove(old,v),closed:clMove(old,v)}))await migrateBookings(b=>b.type===old,{type:v})}
+async function rmDateItem(i){const old=cfg.dateItems[i];if(old==="生日體檢")return;if(!await ask("確定刪除「"+old+"」？（已有的預約不受影響）"))return;await cfgSave({dateItems:cfg.dateItems.filter((_,j)=>j!==i),limits:limMove(old),closed:clMove(old)})}
 async function addSlotItem(){const v=$("newsi").value.trim();if(!v)return;if(itemTaken(v))return flash("已有相同項目");await cfgSave({slotItems:[...cfg.slotItems,{n:v,ss:[],c:false}]})}
 async function renameSlotItem(i){const old=cfg.slotItems[i].n;const v=await askText("修改項目名稱",old);if(!v||v===old)return;if(itemTaken(v))return flash("已有相同項目");
-  const a=cloneItems();a[i].n=v;if(await cfgSave({slotItems:a,limits:limMove(old,v)}))await migrateBookings(b=>b.type===old,{type:v})}
-async function rmSlotItem(i){const old=cfg.slotItems[i].n;if(!await ask("確定刪除「"+old+"」及它的所有時段？（已有的預約不受影響）"))return;await cfgSave({slotItems:cfg.slotItems.filter((_,j)=>j!==i),limits:limMove(old)})}
+  const a=cloneItems();a[i].n=v;if(await cfgSave({slotItems:a,limits:limMove(old,v),closed:clMove(old,v)}))await migrateBookings(b=>b.type===old,{type:v})}
+async function rmSlotItem(i){const old=cfg.slotItems[i].n;if(!await ask("確定刪除「"+old+"」及它的所有時段？（已有的預約不受影響）"))return;await cfgSave({slotItems:cfg.slotItems.filter((_,j)=>j!==i),limits:limMove(old),closed:clMove(old)})}
 async function toggleCustom(i,v){const a=cloneItems();a[i].c=!!v;await cfgSave({slotItems:a})}
 function askSession(d,t){return new Promise(r=>{const el=document.createElement("div");el.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:99;padding:16px";
   el.innerHTML='<div class="card" style="max-width:360px;margin:0;width:100%"><p style="margin-top:0"><b>修改場次</b></p><div class="f"><div class="mut">日期</div><input type="date" id="asd"></div><div class="f"><div class="mut">時段</div><input type="text" id="ast" placeholder="例如 上午場 或 09:00-10:00"></div><div id="asm" style="color:var(--dn)"></div><div class="row" style="justify-content:flex-end;margin-top:10px"><button class="sec" id="an">取消</button><button id="ay">確定</button></div></div>';
@@ -475,6 +481,7 @@ function optCardsHtml(){
     <div class="row" style="align-items:center"><input type="date" id="nd_${i}" min="${YEAR}-01-01" max="${YEAR}-12-31" style="flex:1;min-width:140px"><input type="text" id="nt_${i}" placeholder="時段，例如 上午場 或 09:00-10:00" style="flex:1;min-width:140px"><select id="nmo_${i}" style="width:auto" onchange="const e=$('nmw_${i}');e.style.display=this.value==='1'?'':'none';if(this.value==='1')$('nm_${i}').focus()"><option value="0">沒有限定人數</option><option value="1">有限定人數</option></select><span id="nmw_${i}" style="display:none;white-space:nowrap"><input type="number" id="nm_${i}" min="1" step="1" placeholder="人數" style="width:80px"> 人</span><button onclick="addSess(${i})">新增場次</button></div></div>`).join("");
   return `<div class="card"><h2>預約項目 ① 只選日期</h2><div class="mut" style="margin-bottom:8px">預約時只需要選日期，不用選時段。「生日體檢」是系統規則使用的固定項目，不能修改或刪除。</div><div class="chips">${di}</div><div class="row"><input type="text" id="newdi" placeholder="新增只選日期的項目" style="flex:1"><button onclick="addDateItem()">新增</button></div></div>
   <div class="card"><h2>預約項目 ② 日期＋時段</h2><div class="mut" style="margin-bottom:8px">每個項目由你先設定好「日期＋時段」的場次，同事預約時不用選月曆，直接點選場次。場次可新增、修改（✎）、設定限定人數（👥）、刪除（×）。新增場次時可選擇「沒有限定人數」（預設）或「有限定人數」，每一場可以設不同人數。</div>${si}<div class="row" style="margin-top:10px"><input type="text" id="newsi" placeholder="新增日期＋時段的項目" style="flex:1"><button onclick="addSlotItem()">新增項目</button></div></div>
+  ${openCardHtml()}
   ${limitCardHtml()}
   <div class="card"><h2>預約項目 ③ 加班費申請</h2><div class="mut">已啟用：同事從預約畫面右上角的「💰 加班費申請」進入填寫；管理者在後台上方的「💰 加班費申請後台」審核與製作加班費總表。</div></div>
   <div class="card ph"><h2>預約項目 ④ 特休申請</h2><div class="mut">預留位置，之後會接上「特休申請」程式。目前尚未啟用，同事的預約畫面不會顯示。</div></div>`}
