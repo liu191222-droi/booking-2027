@@ -319,6 +319,16 @@ function dlg(msg,o){o=o||{};return new Promise(res=>{const i=$('#dIn');$('#dMsg'
   $('#dOk').onclick=()=>done(o.input?i.value:true);$('#dNo').onclick=()=>done(o.input?null:false)})}
 const clampMo=v=>{v=String(v).replace(/\D/g,'').slice(0,2);if(v.length===2&&(+v>12||+v<1))v=v[0]==='0'?'0':v[0];return v};
 const MAXDAY=12,tmin=t=>{const m=/^(\d\d):(\d\d)$/.exec(t||'');return m?+m[1]*60+ +m[2]:null},fh=m=>String(+(m/60).toFixed(2));
+/* 時間欄位改成可直接用鍵盤輸入（電腦上）：輸入 0830、830、8:30 都會變成 08:30，Tab 直接跳到下一格；手機仍用原本的時間選擇器 */
+const tnorm=v=>{v=String(v||'').trim();if(!v)return '';let h,m,x=/^(\d{1,2})[:：.](\d{1,2})$/.exec(v);if(x){h=+x[1];m=+x[2]}else if(/^\d{1,4}$/.test(v)){if(v.length<=2){h=+v;m=0}else{h=+v.slice(0,-2);m=+v.slice(-2)}}else return null;
+  if(h===24&&m===0)h=0;return h<24&&m<60?String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'):null};
+if(!(window.matchMedia&&matchMedia('(pointer:coarse)').matches)){const VD=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+  document.querySelectorAll('input[type=time]').forEach(el=>{el.type='text';el.removeAttribute('step');el.setAttribute('inputmode','numeric');el.setAttribute('maxlength','6');el.setAttribute('autocomplete','off');el.placeholder='08:00';el.style.textAlign='center';
+    let jf=false;const sa=()=>{try{el.select()}catch(e){}};
+    Object.defineProperty(el,'value',{configurable:true,get(){const r=VD.get.call(this),n=tnorm(r);return n==null?'':n},set(v){VD.set.call(this,v==null?'':v);if(jf&&document.activeElement===this)sa()}}); // 聚焦時自動帶入預設值後仍保持全選，直接打字即可取代
+    el.addEventListener('focus',()=>{jf=true;sa();setTimeout(()=>{if(jf&&document.activeElement===el)sa()},0)});el.addEventListener('mouseup',e=>{if(jf){jf=false;e.preventDefault();sa()}});el.addEventListener('keydown',()=>{jf=false});
+    el.addEventListener('input',()=>{const r=VD.get.call(el),c=r.replace(/[^\d:：.]/g,'');if(c!==r)VD.set.call(el,c);if(/^\d{4}$/.test(c)&&tnorm(c))VD.set.call(el,tnorm(c));el.style.borderColor=''});
+    el.addEventListener('blur',()=>{const r=VD.get.call(el),n=tnorm(r);if(n==null){el.style.borderColor='#c0392b';toast('時間格式不正確：「'+r+'」，請輸入如 0830 或 08:30');VD.set.call(el,'');el.dispatchEvent(new Event('input',{bubbles:true}))}else{el.style.borderColor='';if(n!==r){VD.set.call(el,n);el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))}}})})}
 function netMin(os,oe,rs,re){const a=tmin(os),b=tmin(oe);if(a==null||b==null)return null;let sp=(b-a+1440)%1440;const c=tmin(rs),d=tmin(re);if(sp&&c!=null&&d!=null)sp-=(d-c+1440)%1440;return Math.max(sp,0)}
 const dayTotal=(date,skip)=>S.rows.reduce((m,r,i)=>m+(i!==skip&&r.date===date?(netMin(r.os,r.oe,r.rs,r.re)||0):0),0);
 const getHead=()=>S.h,getRows=()=>S.rows;
@@ -534,7 +544,7 @@ $('#myRBox').onclick=async e=>{const b=e.target.closest('[data-m]');if(!b)return
   else if(m==='del'){if(!await dlg('刪除我的常用事由「'+a[i].t+'」？'))return;a.splice(i,1)}
   if(!saveMyR(a))return;if(E)E.rsel=cur?allR().findIndex(x=>x.t===cur.t&&x.ot===cur.ot):-1;drawChips();drawMyR()};
 function drawChips(){
-  const chip=(k,t)=>'<button type="button" class="chip" data-'+k+'="'+esc(t)+'">'+esc(t.replace('-','–'))+'</button>';
+  const chip=(k,t)=>'<button type="button" class="chip" tabindex="-1" data-'+k+'="'+esc(t)+'">'+esc(t.replace('-','–'))+'</button>';
   $('#tch').innerHTML=cfg.ot.map(t=>chip('t',t)).join('');$('#rtch').innerHTML=cfg.rest.map(t=>chip('t',t)).join('');
   const nm=loadMyR().length;$('#rch').innerHTML=allR().map((r,i)=>'<button type="button" class="chip'+(r.ot||r.rest||r.type||r.front||r.back?' pre':'')+(E&&E.rsel===i?' on':'')+'" data-r="'+i+'"'+(rMeta(r)?' title="'+esc(rMeta(r))+'"':'')+'>'+(i<nm?'<span class="my">★</span>':'')+esc(r.t)+'</button>').join('');drawMyR();
 }
@@ -716,7 +726,7 @@ function renderDet(){
     return '<details class="dcard"'+(st==='ok'?'':' open')+'><summary><span><b>'+esc(p.name)+'</b>'+(p.name===p.id?'':'（'+esc(p.id)+'）')+'<span class="mut"> 已審核 '+done+' / '+p.rows.length+' 筆</span></span><span class="st '+st+'">'+STL[st]+'</span></summary><div class="dbody">'+ents+
       (done<p.rows.length?'<div class="acts" style="margin-top:10px"><button class="btn" data-rv="allok"'+idA+'>這個人剩下的全部通過</button></div>':'')+'</div></details>'}).join(''):'<div class="empty">'+(all.length?'沒有符合的資料':'還沒有任何人')+'</div>';
 }
-function openDet(){if(!$('#dYr').value){$('#dYr').value=S.h.yr;$('#dMo').value=S.h.mo}renderDet();view('det')}
+function openDet(){if(!$('#dYr').value){$('#dYr').value=S.h.yr;$('#dMo').value=S.h.mo}$('#dFilter').value='pend';renderDet();view('det')} // 每次進入預設顯示「待審核」
 const nowTxt=()=>{const n=new Date();return (n.getMonth()+1)+'/'+n.getDate()+' '+String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0')};
 function setRowRev(p,sigs,st,note){const v=dval(),all=loadRev(),k=v.yr+'-'+v.mo,mm=all[k]=all[k]||{};let m=mm[p.id]||{};
   if(m.st){const L=m;m={};p.rows.forEach(r=>{m[sigOf(r)]=L})}
