@@ -434,14 +434,15 @@ function voteView(){pvSubMine();
   if(!list.length)return head+`<div class="card"><div class="mut">目前沒有你可以參加的投票。</div></div>`;
   return head+list.map(p=>{const st=pStatus(p),mine=pvMine[p.id],ch=mine?mine.choice||[]:[];
     let body="";
-    if(st==="open")body=`<div style="margin-top:8px">${p.opts.map((o,i)=>`<label class="opt" style="padding:6px 0"><input type="${p.multi?"checkbox":"radio"}" name="pv_${p.id}" value="${i}" ${ch.includes(i)?"checked":""}> ${esc(o)}</label>`).join("")}</div>
-      <div class="row" style="margin-top:8px;align-items:center"><button onclick="submitVote('${p.id}')">${mine?"修改投票":"送出投票"}</button>${mine?`<span class="mut">你已投票：${ch.map(i=>esc(p.opts[i]||"")).join("、")}（截止前可以修改）</span>`:`<span class="mut">${p.multi?"可以複選":"只能選一個"}</span>`}</div>`;
+    if(st==="open"&&mine)body=`<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:#e6f4ea">✅ 你已投票：<b>${ch.map(i=>esc(p.opts[i]||"")).join("、")}</b><div class="mut" style="font-size:13px;margin-top:4px">投票完成後不能更改。</div></div>`;
+    else if(st==="open")body=`<div style="margin-top:8px">${p.opts.map((o,i)=>`<label class="opt" style="padding:6px 0"><input type="${p.multi?"checkbox":"radio"}" name="pv_${p.id}" value="${i}" ${ch.includes(i)?"checked":""}> ${esc(o)}</label>`).join("")}</div>
+      <div class="row" style="margin-top:8px;align-items:center"><button onclick="submitVote('${p.id}')">送出投票</button><span class="mut">${p.multi?"可以複選":"只能選一個"}；送出後不能更改</span></div>`;
     else if(st==="wait")body=`<div class="mut" style="margin-top:8px">投票將於 ${esc(dstr(p.start))} 開始。</div>`;
     else body=`<div class="mut" style="margin-top:8px">投票已截止。${mine?`你投的是：${ch.map(i=>esc(p.opts[i]||"")).join("、")}`:"你沒有投票。"}</div>${p.show?pResultHtml(p,false):""}`;
     return `<div class="card"><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">${esc(p.title)}</h2><b style="color:${PCOL[st]}">${PST[st]}</b></div><div class="mut">投票期間：${esc(pRange(p))}</div>${p.desc?`<div style="margin-top:6px;white-space:pre-line">${esc(p.desc)}</div>`:""}${body}</div>`}).join("")}
-async function submitVote(pid){const p=cfg.polls.find(x=>x.id===pid);if(!p)return;if(pStatus(p)!=="open")return notice("這項投票目前不在投票期間。");if(!pCan(p,user.code))return notice("你不在這項投票的名單中。");
+async function submitVote(pid){const p=cfg.polls.find(x=>x.id===pid);if(!p)return;if(pStatus(p)!=="open")return notice("這項投票目前不在投票期間。");if(!pCan(p,user.code))return notice("你不在這項投票的名單中。");if(pvMine[pid])return notice("你已經投過票了，投票完成後不能更改。");
   const ch=[...document.querySelectorAll(`input[name="pv_${pid}"]:checked`)].map(x=>+x.value);if(!ch.length)return flash("請先選擇");
-  if(!await ask("確定投給：「"+ch.map(i=>p.opts[i]).join("、")+"」？"))return;
+  if(!await ask("確定投給：「"+ch.map(i=>p.opts[i]).join("、")+"」？\n送出後就不能更改。"))return;
   const rec={pollId:pid,code:user.code,name:STAFF[user.code]||"",choice:ch,at:Date.now()};
   try{if(store&&store.db)await store.db.doc("config/"+vKey(pid,user.code)).set(rec);else{const m=pvLocal();m[vKey(pid,user.code)]=rec;lsSet("vote2027",m);pvSubMine();render()}notice("已完成投票，謝謝！")}catch(e){flash("投票失敗，請稍後再試")}}
 /* 後台：投票管理 */
