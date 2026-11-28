@@ -715,7 +715,7 @@ function renderDet(){
   all.sort((a,b)=>String(a.id).localeCompare(String(b.id),'zh-Hant',{numeric:true}));
   const sx=p=>p.none?'none':pStat(p,rev);all.forEach(p=>cnt[sx(p)]++);
   $('#dInfo').textContent=v.yr&&v.mo?(v.yr+' 年 '+v.mo+' 月：全部 '+all.length+' 人，已申請 '+app.length+' 人（待審核 '+cnt.pend+'、部分通過 '+cnt.part+'、已通過 '+cnt.ok+'、已退回 '+cnt.rej+'），未申請 '+cnt.none+' 人。'):'請填寫年月';
-  const f=$('#dFilter').value,list=all.filter(p=>!f||sx(p)===f);
+  const hasPend=p=>!p.none&&p.rows.some(x=>!rrOf(rev,p.id,x)),f=$('#dFilter').value,list=all.filter(p=>!f||(f==='pend'?hasPend(p):sx(p)===f)); // 「待審核」顯示還有任何一筆未審核的人（含部分通過、部分退回），審完一筆不會讓其他筆跟著消失
   $('#dList').innerHTML=list.length?list.map(p=>{
     if(p.none)return '<div class="dcard" style="padding:12px 14px;display:flex;justify-content:space-between;align-items:center"><span><b>'+esc(p.name)+'</b>'+(p.name===p.id?'':'（'+esc(p.id)+'）')+'<span class="mut"> 0 筆</span></span><span class="st none">未申請</span></div>';
     const st=sx(p),idA=' data-id="'+esc(p.id)+'"';let done=0;
