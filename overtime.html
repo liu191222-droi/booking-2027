@@ -641,6 +641,9 @@ $('#addReason').onclick=()=>{const t=$('#nReason').value.trim();if(!t)return toa
   if(editingR>=0)cfg.reasons[editingR]=r;else{const k=cfg.reasons.findIndex(x=>x.t===t);if(k>=0)cfg.reasons[k]=r;else cfg.reasons.push(r)}
   resetR();aChange()};
 $('#rCancel').onclick=resetR;
+function rAutoHours(){const m=netMin($('#rOs').value,$('#rOe').value,$('#rRs').value,$('#rRe').value);if(!m)return; // 填好預設加班（及休息）起迄後，自動算出前2時／後2時，之後仍可手動修改
+  const h=Math.min(Math.round(m/60*2)/2,MAXDAY),f=x=>String(+x.toFixed(2));$('#rFront').value=f(Math.min(h,2));$('#rBack').value=h>2?f(h-2):''}
+['rOs','rOe','rRs','rRe'].forEach(k=>{$('#'+k).addEventListener('input',rAutoHours);$('#'+k).addEventListener('change',rAutoHours)});
 const addT=(a,b,k)=>{const x=$('#'+a).value,y=$('#'+b).value;if(!x||!y)return toast('請填完整的起迄時間');const v=x+'-'+y;if(!cfg[k].includes(v))cfg[k].push(v);$('#'+a).value=$('#'+b).value='';aChange()};
 $('#addOt').onclick=()=>addT('aos','aoe','ot');$('#addRest').onclick=()=>addT('ars','are','rest');
 $('#saveMaker').onclick=()=>{cfg.maker=$('#nMaker').value.trim();saveCfg();renderPaper();toast('製表人已更新')};
