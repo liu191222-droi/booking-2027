@@ -164,7 +164,7 @@ function normCfg(d){d=d||{};const o=(d.options||DEF.options).slice();if(!d.eduSl
   const slotItems=Array.isArray(d.slotItems)?d.slotItems.map(x=>({n:x.n,ss:(x.ss||[]).map(y=>sessObj(y.d,y.t,y.m)),c:x.n===EDU||!!x.c})) /* 社區衛教不是院內課程：固定允許人員自選日期＋時段 */:o.filter(x=>SLOT_TYPES.includes(x)||x===EDU).map(n=>({n,ss:[],c:n===EDU}));
   const dateItems=Array.isArray(d.dateItems)?d.dateItems.slice():o.filter(x=>!SLOT_TYPES.includes(x)&&x!==EDU);
   if(!dateItems.includes("生日體檢")&&!slotItems.some(x=>x.n==="生日體檢"))dateItems.unshift("生日體檢");
-  return{options:dateItems.concat(slotItems.map(x=>x.n)),dateItems,slotItems,slots:sl,eduSlots:es,blocked:d.blocked||[],monthMode:d.monthMode||{},limits:normLim(d.limits),holidays:normHol(d.holidays),marks:normMarks(d.marks),admins:Array.isArray(d.admins)?d.admins.map(String).filter(Boolean):[],calPdf:d.calPdf&&d.calPdf.name?{name:String(d.calPdf.name),at:+d.calPdf.at||0}:null,closed:Array.isArray(d.closed)?d.closed.map(String):[]}}
+  return{options:dateItems.concat(slotItems.map(x=>x.n)),dateItems,slotItems,slots:sl,eduSlots:es,blocked:d.blocked||[],monthMode:d.monthMode||{},limits:normLim(d.limits),holidays:normHol(d.holidays),marks:normMarks(d.marks),admins:Array.isArray(d.admins)?d.admins.map(String).filter(Boolean):[],calPdf:d.calPdf&&d.calPdf.name?{name:String(d.calPdf.name),at:+d.calPdf.at||0}:null,closed:Array.isArray(d.closed)?d.closed.map(String):[],polls:Array.isArray(d.polls)?d.polls.map(normPoll).filter(x=>x.id):[]}}
 /* 報名人數限制：沒有設定＝不限定。「只選日期」項目存在 limits={項目名稱:人數}，以每天計；「日期＋時段」項目存在各場次的 m（每場人數上限） */
 function sessObj(d,t,m){const o={d,t},n=Math.floor(+m);if(n>0)o.m=n;return o}
 const sessLimit=(t,d,sl)=>{const it=cfg.slotItems.find(x=>x.n===t),s=it&&it.ss.find(y=>y.d===d&&y.t===sl);return s&&s.m||0};
@@ -238,7 +238,7 @@ async function login(){
   if(!ok)return loginFail("密碼錯誤");
   finishLogin(a);
 }
-function logout(){user=null;editId=null;fill=null;myOpen=false;myF=3;view="login";render()}
+function logout(){user=null;editId=null;fill=null;myOpen=false;myF=3;if(pvUnsubMine)pvUnsubMine();pvUnsubMine=null;pvSub="";pvMine={};pEdit=null;pRes="";view="login";render()}
 
 /* 我的加班費申請：讀取加班頁存在 ot 集合的資料（ot-form-v1:員編@民國年-月） */
 const OT_T={A:"平日加班",B:"緊急來院加班",C:"休息日出勤"};
@@ -320,7 +320,7 @@ function formView(){
   ${okB?`<div class="card" style="border:2px solid var(--ac2)"><h2>✅ ${okB.upd?"預約已更新":"預約成功"}</h2><div>項目：${okB.type==="生日體檢"?"🎂 ":""}${esc(okB.type)}<br>日期：${esc(dstr(okB.date))}${okB.slot?`<br>時段：${esc(okB.slot)}`:""}</div><br><button class="sec" onclick="okB=null;render()">關閉</button></div>`:""}
   ${editId?`<div class="msg">正在修改預約，改完請按「更新預約」。</div>`:""}
   <div class="card"><details class="myd" ${myOpen?"open":""} ontoggle="myOpen=this.open"><summary><h2>我的預約/申請情形</h2></summary><div style="margin:10px 0 8px">${myFil}</div>${cards}</details></div>
-  <div class="card"><h2 class="req">你要預約/申請</h2><div class="cards"><button class="pick nn" onclick="openOT('form')">💰 加班費申請</button>${SHIFT[user.code]==="大夜班"?`<button class="pick nn" onclick="openNight()">🌙 大夜藥師排班</button>${types}`:`${types}<button class="pick nn" onclick="openNight()">🌙 大夜藥師排班</button>`}<button class="pick nn" onclick="openPT()">🕒 兼職藥師排班</button></div>${other}</div>
+  <div class="card"><h2 class="req">你要預約/申請</h2><div class="cards"><button class="pick nn" onclick="openOT('form')">💰 加班費申請</button>${SHIFT[user.code]==="大夜班"?`<button class="pick nn" onclick="openNight()">🌙 大夜藥師排班</button>${types}`:`${types}<button class="pick nn" onclick="openNight()">🌙 大夜藥師排班</button>`}<button class="pick nn" onclick="openPT()">🕒 兼職藥師排班</button><button class="pick nn" onclick="openVote()">🗳️ 投票${pvPending()?`<small style="display:block;color:var(--dn)">有 ${pvPending()} 項待投票</small>`:""}</button></div>${other}</div>
   ${sType&&!sk?calCard:""}
   ${sk&&(sessBtns||sk!=="edu")?`<div class="card"><h2 class="req">你要預約/申請什麼時段？</h2>${sessBtns?`<div class="cards">${sessBtns}${sk==="edu"?`<button class="pick ${sSlot==="__custom"?"on":""}" onclick="pickSlot('__custom')">自訂日期與時間</button>`:""}</div>`:`<div class="mut">目前沒有開放預約的場次。</div>`}</div>`:""}
   ${sk==="edu"&&sSlot==="__custom"?calCard+`<div class="card"><h2 class="req">你要預約/申請的時間</h2><div class="row" style="align-items:center"><span>從</span><input type="time" id="t1" value="${esc(sT1)}" oninput="sT1=this.value" onfocus="if(!this.value){this.value='08:30';sT1=this.value}"><span>到</span><input type="time" id="t2" value="${esc(sT2)}" oninput="sT2=this.value" onfocus="if(!this.value){this.value='10:30';sT2=this.value}"></div><div class="mut" style="margin-top:8px">可以直接輸入時間，也可以點選；點選時預設 08:30 到 10:30。</div></div>`:""}
@@ -390,15 +390,88 @@ function adminView(){
   const mrows=Array.from({length:12},(_,i)=>{const m=YEAR+"-"+pad(i+1),md=(cfg.monthMode||{})[m],lk=monthLocked(m+"-01");return `<tr><td>${i+1}月</td><td style="color:${lk?"var(--dn)":"#007440"}">${monthStatus(m)}</td><td style="white-space:nowrap"><button class="sec" style="padding:4px 10px" ${lk?"":"disabled"} onclick="setMonthMode('${m}','open')">開啟</button> <button class="del" ${lk?"disabled":""} onclick="setMonthMode('${m}','closed')">關閉</button>${md?` <button class="sec" style="padding:4px 10px" onclick="setMonthMode('${m}',null)">恢復自動</button>`:""}</td></tr>`}).join("");
   const staff=Object.keys(STAFF).map(c=>sEdit===c?`<tr><td><input type="text" id="ec_${c}" value="${esc(c)}" style="min-width:90px"></td><td><input type="text" id="en_${c}" value="${esc(STAFF[c])}" style="min-width:80px"></td><td>${shiftSel("es_"+c,SHIFT[c]||defShift(c))}</td><td>${catSel("ea_"+c,CAT[c]||defCat(c))}</td><td colspan="2" style="white-space:nowrap"><button style="padding:4px 10px" onclick="saveStaffEdit('${c}')">儲存</button> <button class="sec" style="padding:4px 10px" onclick="sEdit=null;render()">取消</button></td></tr>`:`<tr><td>${c}</td><td>${esc(STAFF[c])}</td><td>${esc(SHIFT[c]||defShift(c))}</td><td>${esc(CAT[c]||defCat(c))}</td><td>${pws[c]?"已自訂":"預設"}</td><td style="white-space:nowrap"><button class="sec" style="padding:4px 10px" onclick="sEdit='${c}';render()">修改</button> <button class="del" onclick="delStaff('${c}')">刪除</button>${pws[c]?` <button class="del" onclick="resetPw('${c}')">重設密碼</button>`:""}</td></tr>`).join("");
   return `<div class="top"><div><h1>後台管理</h1><div class="mut">${hello()}（${user.code}）</div></div><div class="row">${user.code!=="admin"?`<button class="sec" onclick="go('form')">返回預約畫面</button>`:""}<button class="sec" onclick="go('pw')">修改密碼</button><button class="sec" onclick="logout()">登出</button></div></div>
-  <div class="tabs"><button class="${adminTab==="book"?"on":""}" onclick="adminTab='book';render()">預約情形</button><button class="${adminTab==="opt"?"on":""}" onclick="adminTab='opt';render()">選項管理</button><button class="${adminTab==="all"?"on":""}" onclick="adminTab='all';render()">全員預約情形</button><button class="${adminTab==="stf"?"on":""}" onclick="adminTab='stf';render()">帳號管理</button><button class="${adminTab==="cal"?"on":""}" onclick="adminTab='cal';render()">📅 ${YEAR}年行事曆</button><button class="${adminTab==="night"?"on":""}" onclick="adminTab='night';render()">🌙 大夜藥師排班後台管理</button><button onclick="openOT('admin',1)">💰 加班費申請後台</button><button onclick="openPT(1)">🕒 兼職藥師排班管理</button></div>`+
+  <div class="tabs"><button class="${adminTab==="book"?"on":""}" onclick="adminTab='book';render()">預約情形</button><button class="${adminTab==="opt"?"on":""}" onclick="adminTab='opt';render()">選項管理</button><button class="${adminTab==="all"?"on":""}" onclick="adminTab='all';render()">全員預約情形</button><button class="${adminTab==="stf"?"on":""}" onclick="adminTab='stf';render()">帳號管理</button><button class="${adminTab==="cal"?"on":""}" onclick="adminTab='cal';render()">📅 ${YEAR}年行事曆</button><button class="${adminTab==="night"?"on":""}" onclick="adminTab='night';render()">🌙 大夜藥師排班後台管理</button><button onclick="openOT('admin',1)">💰 加班費申請後台</button><button onclick="openPT(1)">🕒 兼職藥師排班管理</button><button class="${adminTab==="vote"?"on":""}" onclick="adminTab='vote';render()">🗳️ 投票管理</button></div>`+
   (adminTab==="book"?`<div class="mg" style="margin:0 0 12px">${tabs}</div>
   <div class="card"><h2>預約明細（${month+1} 月起，共 ${rest.length} 筆）</h2><div class="scroll"><table><tr><th>日期</th><th>時段</th><th>姓名</th><th>項目</th><th>備註</th><th></th></tr>${rows}</table></div></div><div class="card"><h2>${YEAR} 年 ${month+1} 月（${list.length} 筆）</h2><div class="scroll"><div class="cal">${cal}</div></div></div>`:
-  adminTab==="cal"?holHtml(false):adminTab==="night"?nightAdminHtml():adminTab==="all"?overviewHtml():adminTab==="opt"?`${optCardsHtml()}
+  adminTab==="vote"?pollAdminHtml():adminTab==="cal"?holHtml(false):adminTab==="night"?nightAdminHtml():adminTab==="all"?overviewHtml():adminTab==="opt"?`${optCardsHtml()}
   <div class="card"><h2>不開放預約的日期</h2><div class="mut" style="margin-bottom:8px">國定假日或全院活動日，這些日子在預約月曆上會無法選擇。</div><div class="chips">${(cfg.blocked||[]).map(d=>`<span class="chip">${esc(dstr(d))}<button onclick="rmBlock('${d}')">×</button></span>`).join("")}</div><div class="row"><input type="date" id="bd" min="${YEAR}-01-01" max="${YEAR}-12-31" style="flex:1"><button onclick="addBlock()">新增</button></div></div>
   <div class="card"><h2>預約月份開關</h2><div class="mut" style="margin-bottom:8px">每月 1 日起自動停止該月的預約與修改；可在這裡手動開啟或關閉。</div><div class="scroll"><table><tr><th>月份</th><th>狀態</th><th></th></tr>${mrows}</table></div></div>`:
   `<div class="card"><h2>帳號管理（共 ${realStaff().length} 人${STAFF[TEST]?"，另有測試帳號 test":""}）</h2><div class="row" style="margin-bottom:10px;align-items:center"><button class="sec" onclick="exportStaff()">📥 匯出 Excel</button>${staffStatHtml()}</div><div class="row" style="margin-bottom:10px"><input type="text" id="sc" placeholder="員編" style="flex:1;min-width:110px"><input type="text" id="sn" placeholder="姓名" style="flex:1;min-width:110px">${shiftSel("ss","白班")}${catSel("sa","藥師")}<button onclick="addStaff()">新增員工</button></div><div class="scroll"><table><tr><th>員編</th><th>姓名</th><th>班別</th><th>類別</th><th>密碼</th><th></th></tr>${staff}</table></div></div>${adminAccHtml()}`);
 }
 var onlyNo=false;
+/* ===================== 投票 =====================
+   投票定義存在 config/main 的 polls；每張票存成 config/vote_<投票代號>_<員編>（欄位 pollId、code、choice）。
+   結果只顯示各選項票數與已投／未投名單，不顯示每個人投了什麼。測試帳號 test 的票不計入結果。 */
+function normPoll(x){x=x||{};return{id:String(x.id||""),title:String(x.title||""),desc:String(x.desc||""),opts:Array.isArray(x.opts)?x.opts.map(String).filter(Boolean):[],multi:!!x.multi,start:String(x.start||""),end:String(x.end||""),who:x.who==="list"?"list":"all",list:Array.isArray(x.list)?x.list.map(String):[],show:x.show!==false}}
+let pvMine={},pvAll={},pvSub="",pvUnsubMine=null,pvAllSub="",pvUnsubAll=null,pEdit=null,pRes="";
+const pStatus=p=>{const t=todayS();return p.start&&t<p.start?"wait":p.end&&t>p.end?"done":"open"};
+const PST={wait:"未開始",open:"進行中",done:"已截止"},PCOL={wait:"var(--mut)",open:"#007440",done:"var(--dn)"};
+const pCan=(p,c)=>!!c&&(p.who==="all"?!!STAFF[c]:p.list.includes(c));
+const pVoters=p=>realStaff().filter(c=>pCan(p,c));
+const pRange=p=>(p.start?dstr(p.start):"（不限）")+" ～ "+(p.end?dstr(p.end):"（不限）");
+const vKey=(pid,c)=>"vote_"+pid+"_"+c;
+function pvLocal(){return lsGet("vote2027",{})}
+function pvSubMine(){if(!user)return;
+  if(!store||!store.db){pvMine={};Object.values(pvLocal()).forEach(v=>{if(v.code===user.code)pvMine[v.pollId]=v});return}
+  if(pvSub===user.code)return;if(pvUnsubMine)pvUnsubMine();pvSub=user.code;pvMine={};
+  pvUnsubMine=store.db.collection("config").where("code","==",user.code).onSnapshot(q=>{pvMine={};q.docs.forEach(d=>{const v=d.data();if(v.pollId)pvMine[v.pollId]=v});render()},()=>{})}
+function pvSubAll(pid){if(!store||!store.db){pvAll[pid]=Object.values(pvLocal()).filter(v=>v.pollId===pid);return}
+  if(pvAllSub===pid)return;if(pvUnsubAll)pvUnsubAll();pvAllSub=pid;
+  pvUnsubAll=store.db.collection("config").where("pollId","==",pid).onSnapshot(q=>{pvAll[pid]=q.docs.map(d=>d.data());render()},()=>{})}
+function pvPending(){if(!user)return 0;pvSubMine();return cfg.polls.filter(p=>pStatus(p)==="open"&&pCan(p,user.code)&&!pvMine[p.id]).length}
+function openVote(){view="vote";render();window.scrollTo(0,0)}
+function pTally(p){const v=(pvAll[p.id]||[]).filter(x=>x.code!==TEST&&pCan(p,x.code)),cnt=p.opts.map(()=>0);v.forEach(x=>(x.choice||[]).forEach(i=>{if(cnt[i]!=null)cnt[i]++}));return{v,cnt}}
+function pResultHtml(p,full){pvSubAll(p.id);const {v,cnt}=pTally(p),el=pVoters(p),voted=new Set(v.map(x=>x.code)),tot=v.length,mx=Math.max(1,...cnt);
+  const bars=p.opts.map((o,i)=>`<div style="margin:6px 0"><div class="row" style="justify-content:space-between"><span>${esc(o)}</span><b>${cnt[i]} 票${tot?`（${Math.round(cnt[i]/tot*100)}%）`:""}</b></div><div style="height:10px;border-radius:6px;background:color-mix(in srgb,var(--mut) 18%,transparent);overflow:hidden"><div style="height:100%;width:${cnt[i]/mx*100}%;background:${cnt[i]===mx&&cnt[i]?"#007440":"var(--ac2,#6d4bd1)"}"></div></div></div>`).join("");
+  return `<div class="mut" style="margin:6px 0">已投票 ${tot} / ${el.length} 人${p.multi?"（可複選，百分比以投票人數計）":""}</div>${bars}${full?`<details style="margin-top:10px"><summary>已投票（${voted.size}）／未投票（${el.length-[...voted].filter(c=>el.includes(c)).length}）名單</summary><div class="mut" style="margin-top:6px"><b>已投票：</b>${el.filter(c=>voted.has(c)).map(c=>esc(STAFF[c])).join("、")||"無"}<br><b>未投票：</b>${el.filter(c=>!voted.has(c)).map(c=>esc(STAFF[c])).join("、")||"無"}</div></details>`:""}`}
+function voteView(){pvSubMine();
+  const head=`<div class="top"><div><b>🗳️ 投票</b><div class="mut">${hello()}（${esc(user.code)}）</div></div><div class="row"><button class="sec" onclick="go('form')">其它假別預約畫面</button><button class="sec" onclick="logout()">登出</button></div></div>`;
+  const rk={open:0,wait:1,done:2},list=cfg.polls.filter(p=>pCan(p,user.code)).sort((a,b)=>rk[pStatus(a)]-rk[pStatus(b)]||(b.end||"").localeCompare(a.end||""));
+  if(!list.length)return head+`<div class="card"><div class="mut">目前沒有你可以參加的投票。</div></div>`;
+  return head+list.map(p=>{const st=pStatus(p),mine=pvMine[p.id],ch=mine?mine.choice||[]:[];
+    let body="";
+    if(st==="open")body=`<div style="margin-top:8px">${p.opts.map((o,i)=>`<label class="opt" style="padding:6px 0"><input type="${p.multi?"checkbox":"radio"}" name="pv_${p.id}" value="${i}" ${ch.includes(i)?"checked":""}> ${esc(o)}</label>`).join("")}</div>
+      <div class="row" style="margin-top:8px;align-items:center"><button onclick="submitVote('${p.id}')">${mine?"修改投票":"送出投票"}</button>${mine?`<span class="mut">你已投票：${ch.map(i=>esc(p.opts[i]||"")).join("、")}（截止前可以修改）</span>`:`<span class="mut">${p.multi?"可以複選":"只能選一個"}</span>`}</div>`;
+    else if(st==="wait")body=`<div class="mut" style="margin-top:8px">投票將於 ${esc(dstr(p.start))} 開始。</div>`;
+    else body=`<div class="mut" style="margin-top:8px">投票已截止。${mine?`你投的是：${ch.map(i=>esc(p.opts[i]||"")).join("、")}`:"你沒有投票。"}</div>${p.show?pResultHtml(p,false):""}`;
+    return `<div class="card"><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">${esc(p.title)}</h2><b style="color:${PCOL[st]}">${PST[st]}</b></div><div class="mut">投票期間：${esc(pRange(p))}</div>${p.desc?`<div style="margin-top:6px;white-space:pre-line">${esc(p.desc)}</div>`:""}${body}</div>`}).join("")}
+async function submitVote(pid){const p=cfg.polls.find(x=>x.id===pid);if(!p)return;if(pStatus(p)!=="open")return notice("這項投票目前不在投票期間。");if(!pCan(p,user.code))return notice("你不在這項投票的名單中。");
+  const ch=[...document.querySelectorAll(`input[name="pv_${pid}"]:checked`)].map(x=>+x.value);if(!ch.length)return flash("請先選擇");
+  if(!await ask("確定投給：「"+ch.map(i=>p.opts[i]).join("、")+"」？"))return;
+  const rec={pollId:pid,code:user.code,name:STAFF[user.code]||"",choice:ch,at:Date.now()};
+  try{if(store&&store.db)await store.db.doc("config/"+vKey(pid,user.code)).set(rec);else{const m=pvLocal();m[vKey(pid,user.code)]=rec;lsSet("vote2027",m);pvSubMine();render()}notice("已完成投票，謝謝！")}catch(e){flash("投票失敗，請稍後再試")}}
+/* 後台：投票管理 */
+function pollAdminHtml(){
+  if(pEdit){const e=pEdit,cats=CATS.map(k=>`<button class="sec" style="padding:4px 10px" onclick="pPick('${k}')">${k}</button>`).join("");
+    return `<div class="card"><h2>${e._new?"新增投票":"編輯投票"}</h2>
+    <div class="f"><div class="lb">投票主題</div><input type="text" id="p_t" value="${esc(e.title)}" oninput="pEdit.title=this.value" placeholder="例如：2027 尾牙地點"></div>
+    <div class="f"><div class="lb">說明（選填）</div><textarea id="p_d" rows="2" oninput="pEdit.desc=this.value" style="width:100%">${esc(e.desc)}</textarea></div>
+    <div class="f"><div class="lb">投票選項（每行一個）</div><textarea id="p_o" rows="5" oninput="pEdit.optsText=this.value" style="width:100%" placeholder="選項一&#10;選項二">${esc(e.optsText)}</textarea></div>
+    <label class="opt"><input type="checkbox" ${e.multi?"checked":""} onchange="pEdit.multi=this.checked"> 可以複選</label>
+    <div class="row" style="align-items:center"><div class="f" style="flex:1;min-width:150px"><div class="lb">開始日</div><input type="date" id="p_s" value="${esc(e.start)}" onchange="pEdit.start=this.value"></div><div class="f" style="flex:1;min-width:150px"><div class="lb">截止日（當天仍可投票）</div><input type="date" id="p_e" value="${esc(e.end)}" onchange="pEdit.end=this.value"></div></div>
+    <label class="opt"><input type="checkbox" ${e.show?"checked":""} onchange="pEdit.show=this.checked"> 截止後讓投票的人看到結果</label>
+    <div class="f" style="margin-top:8px"><div class="lb">可以投票的人</div>
+      <label class="opt"><input type="radio" name="p_w" ${e.who==="all"?"checked":""} onchange="pEdit.who='all';render()"> 全部員工（${realStaff().length} 人）</label>
+      <label class="opt"><input type="radio" name="p_w" ${e.who==="list"?"checked":""} onchange="pEdit.who='list';render()"> 指定人員（已選 ${e.list.filter(c=>STAFF[c]).length} 人）</label>
+      ${e.who==="list"?`<div class="row" style="margin:6px 0;align-items:center"><span class="mut">快速選取：</span>${cats}<button class="sec" style="padding:4px 10px" onclick="pPick('*')">全選</button><button class="sec" style="padding:4px 10px" onclick="pPick('')">清除</button></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:2px 10px;max-height:320px;overflow:auto;border:1px solid var(--bd);border-radius:10px;padding:8px">${realStaff().map(c=>`<label class="opt" style="padding:3px 0"><input type="checkbox" ${e.list.includes(c)?"checked":""} onchange="pTog('${esc(c)}',this.checked)"> ${esc(STAFF[c])}</label>`).join("")}</div>`:""}</div>
+    <div class="row" style="margin-top:12px"><button onclick="pSave()">儲存</button><button class="sec" onclick="pEdit=null;render()">取消</button></div></div>`}
+  if(pRes){const p=cfg.polls.find(x=>x.id===pRes);if(p)return `<div class="card"><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">${esc(p.title)}：投票結果</h2><button class="sec" onclick="pRes='';render()">返回投票列表</button></div><div class="mut">投票期間：${esc(pRange(p))}・<b style="color:${PCOL[pStatus(p)]}">${PST[pStatus(p)]}</b></div>${pResultHtml(p,true)}<div class="mut" style="margin-top:10px;font-size:12px">結果只統計各選項票數，不顯示個人投了哪一項。</div></div>`;pRes=""}
+  const rows=cfg.polls.slice().reverse().map(p=>{const st=pStatus(p);return `<div class="bk"><div><b>${esc(p.title)}</b> <b style="color:${PCOL[st]};font-size:13px">${PST[st]}</b><div class="mut">${esc(pRange(p))}・${p.opts.length} 個選項${p.multi?"（可複選）":""}・${p.who==="all"?"全部員工":"指定 "+pVoters(p).length+" 人"}</div></div><div class="row"><button class="sec" style="padding:6px 12px" onclick="pRes='${p.id}';render()">結果</button><button class="sec" style="padding:6px 12px" onclick="pEditOpen('${p.id}')">編輯</button><button class="del" style="padding:6px 12px" onclick="pDel('${p.id}')">刪除</button></div></div>`}).join("")||`<div class="mut">還沒有任何投票。</div>`;
+  return `<div class="card"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">投票管理</h2><button onclick="pEditOpen()">＋ 新增投票</button></div>${rows}</div>`}
+function pEditOpen(id){const p=id?cfg.polls.find(x=>x.id===id):null,t=todayS();
+  pEdit=p?{...p,list:p.list.slice(),optsText:p.opts.join("\n"),_orig:p.opts.join("\n")}:{_new:true,id:"p"+Date.now().toString(36),title:"",desc:"",optsText:"",multi:false,start:t,end:"",who:"all",list:[],show:true};render();window.scrollTo(0,0)}
+function pTog(c,on){const l=pEdit.list.filter(x=>x!==c);if(on)l.push(c);pEdit.list=l;render()}
+function pPick(k){pEdit.list=k==="*"?realStaff():k?realStaff().filter(c=>(CAT[c]||defCat(c))===k):[];render()}
+async function pSave(){const e=pEdit,opts=[...new Set((e.optsText||"").split("\n").map(x=>x.trim()).filter(Boolean))];
+  if(!e.title.trim())return flash("請輸入投票主題");if(opts.length<2)return flash("至少要有 2 個選項");if(!e.start||!e.end)return flash("請設定開始日與截止日");if(e.end<e.start)return flash("截止日不能早於開始日");
+  if(e.who==="list"&&!e.list.filter(c=>STAFF[c]).length)return flash("請選擇可以投票的人");
+  if(!e._new&&opts.join("\n")!==e._orig){pvSubAll(e.id);if((pvAll[e.id]||[]).length&&!await ask("已經有人投票，修改選項後已投的票可能對應到不同的選項，建議先刪除重建。仍要儲存？"))return}
+  const p=normPoll({...e,title:e.title.trim(),desc:(e.desc||"").trim(),opts});const l=cfg.polls.filter(x=>x.id!==p.id);if(e._new)l.push(p);else{const i=cfg.polls.findIndex(x=>x.id===p.id);l.splice(i<0?l.length:i,0,p)}
+  if(await cfgSave({polls:l})){pEdit=null;flash("已儲存投票："+p.title)}}
+async function pDel(id){const p=cfg.polls.find(x=>x.id===id);if(!p||!await ask("確定刪除投票「"+p.title+"」？所有已投的票也會一併刪除，無法復原。"))return;
+  try{if(store&&store.db){const q=await store.db.collection("config").where("pollId","==",id).get();for(const d of q.docs)await d.ref.delete()}else{const m=pvLocal();Object.keys(m).forEach(k=>{if(m[k].pollId===id)delete m[k]});lsSet("vote2027",m)}}catch(e){}
+  if(await cfgSave({polls:cfg.polls.filter(x=>x.id!==id)}))flash("已刪除投票")}
 function calView(){return `<div class="top"><div><b>📅 ${YEAR}年行事曆</b></div><button class="sec" onclick="go(user&&user.admin&&!STAFF[user.code]?'admin':'form')">返回預約畫面</button></div>${holHtml(true)}`}
 /* 全員預約情形：預設「每月」，月份預設為登入月份的次月；也可切換「全部」 */
 const ovNext=(()=>{const t=new Date(),d=new Date(t.getFullYear(),t.getMonth()+1,1);return d.getFullYear()+"-"+pad(d.getMonth()+1)})();
@@ -606,7 +679,7 @@ function render0(){
   let h=local?`<div class="msg mut">目前為單機模式：資料只存在這台瀏覽器，不會與其他人共用（無法連線到資料庫）。</div>`:"";
   if(msg)h+=`<div class="msg">${esc(msg)}</div>`;
   if(view!=="login")h+=stripHtml();
-  h+=view==="login"?loginView():view==="form"?formView():view==="pw"?pwView():view==="cal"?calView():view==="night"?nightView():view==="pt"?ptView():view==="ot"?otView():adminView();
+  h+=view==="login"?loginView():view==="form"?formView():view==="pw"?pwView():view==="cal"?calView():view==="vote"?voteView():view==="night"?nightView():view==="pt"?ptView():view==="ot"?otView():adminView();
   $("app").innerHTML=h;
   Object.entries(keep).forEach(([k,v])=>{if($(k))$(k).value=v});
   if(view==="form"){[["type",fv],["slot",sv]].forEach(([n,v])=>{const e=[...document.querySelectorAll(`input[name=${n}]`)].find(x=>x.value===v);if(e)e.checked=true})}
