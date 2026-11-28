@@ -402,12 +402,12 @@ var onlyNo=false;
 /* ===================== 投票 =====================
    投票定義存在 config/main 的 polls；每張票存成 config/vote_<投票代號>_<員編>（欄位 pollId、code、choice）。
    結果只顯示各選項票數與已投／未投名單，不顯示每個人投了什麼。測試帳號 test 的票不計入結果。 */
-function normPoll(x){x=x||{};return{id:String(x.id||""),title:String(x.title||""),desc:String(x.desc||""),opts:Array.isArray(x.opts)?x.opts.map(String).filter(Boolean):[],multi:!!x.multi,start:String(x.start||""),end:String(x.end||""),who:x.who==="list"?"list":"all",list:Array.isArray(x.list)?x.list.map(String):[],show:x.show!==false}}
+function normPoll(x){x=x||{};return{id:String(x.id||""),title:String(x.title||""),desc:String(x.desc||""),opts:Array.isArray(x.opts)?x.opts.map(String).filter(Boolean):[],multi:!!x.multi,start:String(x.start||""),end:String(x.end||""),who:x.who==="list"?"list":"all",list:Array.isArray(x.list)?x.list.map(String):[],show:x.show!==false,status:x.status==="draft"?"draft":"pub"}} /* status：draft 暫存（同事看不到）、pub 已送出 */
 let pvMine={},pvAll={},pvSub="",pvUnsubMine=null,pvAllSub="",pvUnsubAll=null,pEdit=null,pRes="";
 const pStatus=p=>{const t=todayS();return p.start&&t<p.start?"wait":p.end&&t>p.end?"done":"open"};
 const PST={wait:"未開始",open:"進行中",done:"已截止"},PCOL={wait:"var(--mut)",open:"#007440",done:"var(--dn)"};
-const pCan=(p,c)=>!!c&&(p.who==="all"?!!STAFF[c]:p.list.includes(c));
-const pVoters=p=>realStaff().filter(c=>pCan(p,c));
+const pCan=(p,c)=>!!c&&p.status!=="draft"&&(p.who==="all"?!!STAFF[c]:p.list.includes(c));
+const pVoters=p=>realStaff().filter(c=>p.who==="all"?true:p.list.includes(c));
 const pRange=p=>(p.start?dstr(p.start):"（不限）")+" ～ "+(p.end?dstr(p.end):"（不限）");
 const vKey=(pid,c)=>"vote_"+pid+"_"+c;
 function pvLocal(){return lsGet("vote2027",{})}
@@ -424,7 +424,7 @@ function voteSub(){if(!cfg.voteOn)return `<small class="mut" style="display:bloc
   const op=cfg.polls.filter(p=>pStatus(p)==="open"&&pCan(p,user.code)),n=pvPending(),sm='display:block;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 auto';
   return (op.length===1?`<small class="mut" style="${sm}">進行中：${esc(op[0].title)}</small>`:op.length>1?`<small class="mut" style="${sm}">進行中 ${op.length} 項</small>`:"")+(n?`<small style="display:block;color:var(--dn)">有 ${n} 項待投票</small>`:"")}
 function openVote(){if(!cfg.voteOn){notice("尚未開放投票");return}view="vote";render();window.scrollTo(0,0)}
-function pTally(p){const v=(pvAll[p.id]||[]).filter(x=>x.code!==TEST&&pCan(p,x.code)),cnt=p.opts.map(()=>0);v.forEach(x=>(x.choice||[]).forEach(i=>{if(cnt[i]!=null)cnt[i]++}));return{v,cnt}}
+function pTally(p){const el=new Set(pVoters(p)),v=(pvAll[p.id]||[]).filter(x=>x.code!==TEST&&el.has(x.code)),cnt=p.opts.map(()=>0);v.forEach(x=>(x.choice||[]).forEach(i=>{if(cnt[i]!=null)cnt[i]++}));return{v,cnt}}
 function pResultHtml(p,full){pvSubAll(p.id);const {v,cnt}=pTally(p),el=pVoters(p),voted=new Set(v.map(x=>x.code)),tot=v.length,mx=Math.max(1,...cnt);
   const bars=p.opts.map((o,i)=>`<div style="margin:6px 0"><div class="row" style="justify-content:space-between"><span>${esc(o)}</span><b>${cnt[i]} 票${tot?`（${Math.round(cnt[i]/tot*100)}%）`:""}</b></div><div style="height:10px;border-radius:6px;background:color-mix(in srgb,var(--mut) 18%,transparent);overflow:hidden"><div style="height:100%;width:${cnt[i]/mx*100}%;background:${cnt[i]===mx&&cnt[i]?"#007440":"var(--ac2,#6d4bd1)"}"></div></div></div>`).join("");
   return `<div class="mut" style="margin:6px 0">已投票 ${tot} / ${el.length} 人${p.multi?"（可複選，百分比以投票人數計）":""}</div>${bars}${full?`<details style="margin-top:10px"><summary>已投票（${voted.size}）／未投票（${el.length-[...voted].filter(c=>el.includes(c)).length}）名單</summary><div class="mut" style="margin-top:6px"><b>已投票：</b>${el.filter(c=>voted.has(c)).map(c=>esc(STAFF[c])).join("、")||"無"}<br><b>未投票：</b>${el.filter(c=>!voted.has(c)).map(c=>esc(STAFF[c])).join("、")||"無"}</div></details>`:""}`}
@@ -459,9 +459,9 @@ function pollAdminHtml(){
       <label class="opt"><input type="radio" name="p_w" ${e.who==="list"?"checked":""} onchange="pEdit.who='list';render()"> 指定人員（已選 ${e.list.filter(c=>STAFF[c]).length} 人）</label>
       ${e.who==="list"?`<div class="row" style="margin:6px 0;align-items:center"><span class="mut">快速選取：</span>${cats}<button class="sec" style="padding:4px 10px" onclick="pPick('*')">全選</button><button class="sec" style="padding:4px 10px" onclick="pPick('')">清除</button></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:2px 10px;max-height:320px;overflow:auto;border:1px solid var(--bd);border-radius:10px;padding:8px">${realStaff().map(c=>`<label class="opt" style="padding:3px 0"><input type="checkbox" ${e.list.includes(c)?"checked":""} onchange="pTog('${esc(c)}',this.checked)"> ${esc(STAFF[c])}</label>`).join("")}</div>`:""}</div>
-    <div class="row" style="margin-top:12px"><button onclick="pSave()">儲存</button><button class="sec" onclick="pEdit=null;render()">取消</button></div></div>`}
+    <div class="row" style="margin-top:12px;align-items:center"><button class="sec" onclick="pSave('draft')">暫存</button><button onclick="pSave('pub')">送出</button><button class="sec" onclick="pEdit=null;render()">取消</button><span class="mut" style="font-size:13px">暫存：先存起來，同事看不到；送出：正式公布，同事在投票期間可以投票。</span></div></div>`}
   if(pRes){const p=cfg.polls.find(x=>x.id===pRes);if(p)return `<div class="card"><div class="row" style="justify-content:space-between;align-items:center"><h2 style="margin:0">${esc(p.title)}：投票結果</h2><button class="sec" onclick="pRes='';render()">返回投票列表</button></div><div class="mut">投票期間：${esc(pRange(p))}・<b style="color:${PCOL[pStatus(p)]}">${PST[pStatus(p)]}</b></div>${pResultHtml(p,true)}<div class="mut" style="margin-top:10px;font-size:12px">結果只統計各選項票數，不顯示個人投了哪一項。</div></div>`;pRes=""}
-  const rows=cfg.polls.slice().reverse().map(p=>{const st=pStatus(p);return `<div class="bk"><div><b>${esc(p.title)}</b> <b style="color:${PCOL[st]};font-size:13px">${PST[st]}</b><div class="mut">${esc(pRange(p))}・${p.opts.length} 個選項${p.multi?"（可複選）":""}・${p.who==="all"?"全部員工":"指定 "+pVoters(p).length+" 人"}</div></div><div class="row"><button class="sec" style="padding:6px 12px" onclick="pRes='${p.id}';render()">結果</button><button class="sec" style="padding:6px 12px" onclick="pEditOpen('${p.id}')">編輯</button><button class="del" style="padding:6px 12px" onclick="pDel('${p.id}')">刪除</button></div></div>`}).join("")||`<div class="mut">還沒有任何投票。</div>`;
+  const rows=cfg.polls.slice().reverse().map(p=>{const st=pStatus(p);return `<div class="bk"><div><b>${esc(p.title||"（未命名）")}</b> ${p.status==="draft"?`<b style="color:#b26a00;font-size:13px">暫存中（同事看不到）</b>`:`<b style="color:${PCOL[st]};font-size:13px">${PST[st]}</b>`}<div class="mut">${esc(pRange(p))}・${p.opts.length} 個選項${p.multi?"（可複選）":""}・${p.who==="all"?"全部員工":"指定 "+pVoters(p).length+" 人"}</div></div><div class="row"><button class="sec" style="padding:6px 12px" onclick="pRes='${p.id}';render()">結果</button><button class="sec" style="padding:6px 12px" onclick="pEditOpen('${p.id}')">編輯</button><button class="del" style="padding:6px 12px" onclick="pDel('${p.id}')">刪除</button></div></div>`}).join("")||`<div class="mut">還沒有任何投票。</div>`;
   return `<div class="card"><div class="row" style="justify-content:space-between;align-items:center;margin-bottom:10px"><h2 style="margin:0">投票管理</h2><button onclick="pEditOpen()">＋ 新增投票</button></div>
   <div class="row" style="align-items:center;margin-bottom:12px;padding:10px 12px;border-radius:10px;background:${cfg.voteOn?"#e6f4ea":"#fdecea"}"><label class="opt" style="padding:0"><input type="checkbox" ${cfg.voteOn?"checked":""} onchange="setVoteOn(this.checked)"> <b>投票功能：${cfg.voteOn?`<span style="color:#007440">開啟</span>`:`<span style="color:var(--dn)">關閉</span>`}</b></label><span class="mut">${cfg.voteOn?"同事的預約畫面會顯示「🗳️ 線上投票」按鈕。":"同事畫面的「🗳️ 線上投票」下方會顯示「尚未開放投票」，無法進入；投票資料都會保留。"}</span></div>${rows}</div>`}
 async function setVoteOn(on){if(await cfgSave({voteOn:!!on}))flash(on?"已開啟投票功能":"已關閉投票功能")}
@@ -469,12 +469,17 @@ function pEditOpen(id){const p=id?cfg.polls.find(x=>x.id===id):null,t=todayS();
   pEdit=p?{...p,list:p.list.slice(),optsText:p.opts.join("\n"),_orig:p.opts.join("\n")}:{_new:true,id:"p"+Date.now().toString(36),title:"",desc:"",optsText:"",multi:false,start:t,end:"",who:"all",list:[],show:true};render();window.scrollTo(0,0)}
 function pTog(c,on){const l=pEdit.list.filter(x=>x!==c);if(on)l.push(c);pEdit.list=l;render()}
 function pPick(k){pEdit.list=k==="*"?realStaff():k?realStaff().filter(c=>(CAT[c]||defCat(c))===k):[];render()}
-async function pSave(){const e=pEdit,opts=[...new Set((e.optsText||"").split("\n").map(x=>x.trim()).filter(Boolean))];
-  if(!e.title.trim())return flash("請輸入投票主題");if(opts.length<2)return flash("至少要有 2 個選項");if(!e.start||!e.end)return flash("請設定開始日與截止日");if(e.end<e.start)return flash("截止日不能早於開始日");
-  if(e.who==="list"&&!e.list.filter(c=>STAFF[c]).length)return flash("請選擇可以投票的人");
+async function pSave(mode){const e=pEdit,opts=[...new Set((e.optsText||"").split("\n").map(x=>x.trim()).filter(Boolean))],draft=mode==="draft";
+  /* 檢查不通過時用跳出視窗提醒（表單很長，頁面上方的提示看不到） */
+  if(!e.title.trim())return notice("請輸入投票主題");
+  if(!draft){if(opts.length<2)return notice("至少要有 2 個選項（每行一個）");if(!e.start||!e.end)return notice("請設定開始日與截止日");if(e.end<e.start)return notice("截止日不能早於開始日");
+    if(e.who==="list"&&!e.list.filter(c=>STAFF[c]).length)return notice("請選擇可以投票的人")}
+  else if(e.start&&e.end&&e.end<e.start)return notice("截止日不能早於開始日");
   if(!e._new&&opts.join("\n")!==e._orig){pvSubAll(e.id);if((pvAll[e.id]||[]).length&&!await ask("已經有人投票，修改選項後已投的票可能對應到不同的選項，建議先刪除重建。仍要儲存？"))return}
-  const p=normPoll({...e,title:e.title.trim(),desc:(e.desc||"").trim(),opts});const l=cfg.polls.filter(x=>x.id!==p.id);if(e._new)l.push(p);else{const i=cfg.polls.findIndex(x=>x.id===p.id);l.splice(i<0?l.length:i,0,p)}
-  if(await cfgSave({polls:l})){pEdit=null;flash("已儲存投票："+p.title)}}
+  if(draft&&!e._new&&e.status==="pub"&&!await ask("這項投票已經送出，暫存後會改回「暫存中」，同事將看不到。確定嗎？"))return;
+  if(!draft&&!await ask("確定送出「"+e.title.trim()+"」？送出後，名單內的同事在投票期間就可以投票。"))return;
+  const p=normPoll({...e,title:e.title.trim(),desc:(e.desc||"").trim(),opts,status:draft?"draft":"pub"});const l=cfg.polls.filter(x=>x.id!==p.id);if(e._new)l.push(p);else{const i=cfg.polls.findIndex(x=>x.id===p.id);l.splice(i<0?l.length:i,0,p)}
+  if(await cfgSave({polls:l})){pEdit=null;render();notice(draft?"已暫存「"+p.title+"」，同事目前看不到。":"已送出「"+p.title+"」。")}else notice("儲存失敗，請稍後再試")}
 async function pDel(id){const p=cfg.polls.find(x=>x.id===id);if(!p||!await ask("確定刪除投票「"+p.title+"」？所有已投的票也會一併刪除，無法復原。"))return;
   try{if(store&&store.db){const q=await store.db.collection("config").where("pollId","==",id).get();for(const d of q.docs)await d.ref.delete()}else{const m=pvLocal();Object.keys(m).forEach(k=>{if(m[k].pollId===id)delete m[k]});lsSet("vote2027",m)}}catch(e){}
   if(await cfgSave({polls:cfg.polls.filter(x=>x.id!==id)}))flash("已刪除投票")}
